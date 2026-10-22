@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1_def"]
+[ext_resource type="PackedScene" uid="uid://vndecocart01" path="res://Scenes/Environment/WoodCart.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+Id = "wood_cart"
+DisplayName = "Carroça"
+Category = 2
+Layer = 0
+SizeInCells = Vector2i(1, 1)
+CanRotate = true
+CanDemolish = true
+BlocksMovement = true
+VisualScene = ExtResource("2_scene")

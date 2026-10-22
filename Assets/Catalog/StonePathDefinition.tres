@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Scenes/Paths/StonePath.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+Id = "path_stone"
+DisplayName = "Caminho de pedra"
+Category = 3
+Layer = 1
+SizeInCells = Vector2i(1, 1)
+CanRotate = true
+CanDemolish = true
+BlocksMovement = false
+VisualScene = ExtResource("2")

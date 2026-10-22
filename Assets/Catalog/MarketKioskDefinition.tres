@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Scenes/Buildings/MarketKiosk.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+Id = "market_kiosk"
+DisplayName = "Quiosque"
+Category = 0
+Layer = 0
+SizeInCells = Vector2i(2, 2)
+CanRotate = true
+CanDemolish = true
+IsVisitable = true
+EntranceLocalOffset = Vector3(0, 0, 2.5)
+VisualScene = ExtResource("2")

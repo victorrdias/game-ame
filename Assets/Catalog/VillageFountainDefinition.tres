@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Scenes/Environment/VillageFountain.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+Id = "village_fountain"
+DisplayName = "Fonte"
+Category = 2
+Layer = 0
+SizeInCells = Vector2i(2, 2)
+CanRotate = true
+CanDemolish = true
+VisualScene = ExtResource("2")

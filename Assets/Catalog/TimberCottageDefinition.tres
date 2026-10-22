@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1_def"]
+[ext_resource type="PackedScene" uid="uid://vntimberhs01" path="res://Scenes/Buildings/TimberCottage.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+Id = "timber_cottage"
+DisplayName = "Casa de enxaimel"
+Category = 0
+Layer = 0
+SizeInCells = Vector2i(2, 2)
+CanRotate = true
+CanDemolish = true
+BlocksMovement = true
+IsVisitable = true
+EntranceLocalOffset = Vector3(-2.5, 0, 0)
+VisualScene = ExtResource("2_scene")

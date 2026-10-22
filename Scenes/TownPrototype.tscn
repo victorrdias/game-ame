@@ -1,0 +1,257 @@
+[gd_scene load_steps=28 format=3 uid="uid://townprototype001"]
+
+[ext_resource type="Script" uid="uid://b46fovr26yucf" path="res://Scripts/Camera/CameraController.cs" id="1_cam"]
+[ext_resource type="Script" uid="uid://d0firbt200atp" path="res://Scripts/Environment/TerrainGrid.cs" id="2_grid"]
+[ext_resource type="PackedScene" uid="uid://vnrefcottb01" path="res://Scenes/Buildings/ReferenceCottage.tscn" id="3_reference"]
+[ext_resource type="PackedScene" uid="uid://vntimberhs01" path="res://Scenes/Buildings/TimberCottage.tscn" id="3_timber"]
+[ext_resource type="PackedScene" uid="uid://vnstonehs001" path="res://Scenes/Buildings/StoneCottage.tscn" id="4_stone"]
+[ext_resource type="PackedScene" uid="uid://vnoaktree001" path="res://Scenes/Environment/OakTree.tscn" id="15_oak"]
+[ext_resource type="PackedScene" uid="uid://vnpoplar001" path="res://Scenes/Environment/PoplarTree.tscn" id="16_poplar"]
+[ext_resource type="PackedScene" uid="uid://vnflowerb001" path="res://Scenes/Environment/FlowerBush.tscn" id="17_flower"]
+[ext_resource type="PackedScene" uid="uid://vnberryb001" path="res://Scenes/Environment/BerryBush.tscn" id="18_berry"]
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingManager.cs" id="5_bmgr"]
+[ext_resource type="Resource" path="res://Assets/Catalog/VilaNovaCatalog.tres" id="6_catalog"]
+[ext_resource type="Script" path="res://Scripts/UI/BuildControlsHint.cs" id="7_hint"]
+[ext_resource type="Script" path="res://Scripts/UI/BuildPaletteUI.cs" id="8_palette"]
+[ext_resource type="PackedScene" path="res://Scenes/Player/Player.tscn" id="9_player"]
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingInteractionController.cs" id="10_interact"]
+[ext_resource type="Script" path="res://Scripts/UI/BuildingInfoPanelUI.cs" id="11_infopanel"]
+[ext_resource type="Script" path="res://Scripts/Visual/InteractionIndicatorVisual.cs" id="12_indicator"]
+[ext_resource type="Script" path="res://Scripts/Npcs/NpcPopulationManager.cs" id="13_pop"]
+[ext_resource type="PackedScene" path="res://Scenes/Npcs/NpcResident.tscn" id="14_npcscene"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.58, 0.7, 0.46, 1)
+roughness = 0.95
+specular_mode = 2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(40, 40)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(40, 0.2, 40)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.52, 0.72, 0.92, 1)
+sky_horizon_color = Color(0.86, 0.88, 0.82, 1)
+sky_curve = 0.12
+ground_bottom_color = Color(0.42, 0.5, 0.38, 1)
+ground_horizon_color = Color(0.68, 0.76, 0.6, 1)
+sun_angle_max = 24.0
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_color = Color(0.95, 0.9, 0.82, 1)
+ambient_light_energy = 0.42
+tonemap_mode = 2
+tonemap_exposure = 1.02
+ssao_enabled = false
+sdfgi_enabled = false
+glow_enabled = false
+adjustment_enabled = true
+adjustment_brightness = 1.02
+adjustment_contrast = 1.04
+adjustment_saturation = 1.06
+
+[node name="TownPrototype" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 12, 0)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 1.05
+light_angular_distance = 0.75
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 48.0
+directional_shadow_blend_splits = true
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("StandardMaterial3D_ground")
+
+[node name="GroundBody" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundBody"]
+shape = SubResource("BoxShape3D_ground")
+
+[node name="PlacedBuildings" type="Node3D" parent="."]
+
+[node name="TerrainGrid" type="Node3D" parent="."]
+script = ExtResource("2_grid")
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="ReferenceCottage" parent="Props" instance=ExtResource("3_reference")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -1)
+
+[node name="TimberCottage" parent="Props" instance=ExtResource("3_timber")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -2)
+
+[node name="StoneCottage" parent="Props" instance=ExtResource("4_stone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+
+[node name="OakNearLane" parent="Props" instance=ExtResource("15_oak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -1)
+
+[node name="PoplarEast" parent="Props" instance=ExtResource("16_poplar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -3)
+
+[node name="OakSouth" parent="Props" instance=ExtResource("15_oak")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -9)
+
+[node name="FlowerBush" parent="Props" instance=ExtResource("17_flower")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 5)
+
+[node name="BerryBush" parent="Props" instance=ExtResource("18_berry")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -5)
+
+[node name="Player" parent="." instance=ExtResource("9_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 4)
+
+[node name="CameraController" type="Node3D" parent="."]
+script = ExtResource("1_cam")
+FollowTargetPath = NodePath("../Player")
+
+[node name="Pivot" type="Node3D" parent="CameraController"]
+
+[node name="Camera3D" type="Camera3D" parent="CameraController/Pivot"]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 18, 18, 18)
+projection = 1
+size = 22.0
+current = true
+
+[node name="BuildingManager" type="Node" parent="."]
+script = ExtResource("5_bmgr")
+Catalog = ExtResource("6_catalog")
+PropsPath = NodePath("../Props")
+BuildingsRootPath = NodePath("../PlacedBuildings")
+CameraPath = NodePath("../CameraController/Pivot/Camera3D")
+PlayerPath = NodePath("../Player")
+InfoPanelPath = NodePath("../BuildingInfoPanelUI")
+
+[node name="Npcs" type="Node3D" parent="."]
+
+[node name="NpcPopulationManager" type="Node" parent="."]
+script = ExtResource("13_pop")
+ResidentScene = ExtResource("14_npcscene")
+BuildingManagerPath = NodePath("../BuildingManager")
+NpcsRootPath = NodePath("../Npcs")
+PlayerPath = NodePath("../Player")
+ResidentCount = 5
+
+[node name="BuildingInteractionController" type="Node" parent="."]
+script = ExtResource("10_interact")
+
+[node name="InteractionIndicator" type="Node3D" parent="."]
+script = ExtResource("12_indicator")
+
+[node name="BuildingInfoPanelUI" type="CanvasLayer" parent="."]
+script = ExtResource("11_infopanel")
+
+[node name="BuildPaletteUI" type="CanvasLayer" parent="."]
+layer = 2
+script = ExtResource("8_palette")
+
+[node name="RootPanel" type="Control" parent="BuildPaletteUI"]
+visible = false
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -380.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="PanelFrame" type="PanelContainer" parent="BuildPaletteUI/RootPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="BuildPaletteUI/RootPanel/PanelFrame"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Construção"
+
+[node name="CategoryRow" type="HBoxContainer" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ItemScroll" type="ScrollContainer" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 220)
+
+[node name="ItemGrid" type="GridContainer" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox/ItemScroll"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="DetailsLabel" type="Label" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Selecione um item do catálogo."
+
+[node name="BuildControlsHint" type="CanvasLayer" parent="."]
+layer = 3
+script = ExtResource("7_hint")
+
+[node name="MarginContainer" type="MarginContainer" parent="BuildControlsHint"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 96.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+
+[node name="VBox" type="VBoxContainer" parent="BuildControlsHint/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="PanelContainer" type="PanelContainer" parent="BuildControlsHint/MarginContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HintLabel" type="Label" parent="BuildControlsHint/MarginContainer/VBox/PanelContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.93, 0.86, 0.95)
+theme_override_colors/font_shadow_color = Color(0.08, 0.1, 0.07, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 15
+text = "B: casa | X: demolir | WASD: mover | Q/E: girar | Scroll: zoom"
+autowrap_mode = 3
+
+[node name="StatusLabel" type="Label" parent="BuildControlsHint/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.84, 0.55, 0.95)
+theme_override_colors/font_shadow_color = Color(0.08, 0.1, 0.07, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+autowrap_mode = 3

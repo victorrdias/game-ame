@@ -1,0 +1,76 @@
+[gd_scene load_steps=6 format=3 uid="uid://vnrefcottage01"]
+
+[ext_resource type="PackedScene" path="res://Assets/Models/vn_building_reference_cottage.glb" id="1_cottage"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.58, 0.7, 0.46, 1)
+roughness = 0.95
+specular_mode = 2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(24, 24)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.52, 0.72, 0.92, 1)
+sky_horizon_color = Color(0.86, 0.88, 0.82, 1)
+sky_curve = 0.12
+ground_bottom_color = Color(0.42, 0.5, 0.38, 1)
+ground_horizon_color = Color(0.68, 0.76, 0.6, 1)
+sun_angle_max = 24.0
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_color = Color(0.95, 0.9, 0.82, 1)
+ambient_light_energy = 0.42
+tonemap_mode = 2
+tonemap_exposure = 1.02
+ssao_enabled = false
+sdfgi_enabled = false
+glow_enabled = false
+adjustment_enabled = true
+adjustment_brightness = 1.02
+adjustment_contrast = 1.04
+adjustment_saturation = 1.06
+
+[node name="ReferenceCottageShowcase" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 12, 0)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 1.05
+light_angular_distance = 0.75
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 48.0
+directional_shadow_blend_splits = true
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("StandardMaterial3D_ground")
+
+[node name="ShowcaseCameraRig" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="ShowcaseCameraRig"]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 12, 12)
+projection = 1
+size = 16.0
+current = true
+far = 200.0
+
+[node name="ReferenceCottage" parent="." instance=ExtResource("1_cottage")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 0, 0)
+
+[node name="Caption" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 4.6)
+text = "vn_building_reference_cottage"
+font_size = 42
+outline_size = 8
+modulate = Color(0.94, 0.93, 0.86, 1)
