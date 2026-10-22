@@ -15,6 +15,16 @@ public partial class BuildingDefinition : Resource
 	[Export] public bool BlocksMovement { get; set; } = true;
 
 	/// <summary>
+	/// Movement-block height in meters. Zero uses the size-based default.
+	/// </summary>
+	[Export] public float CollisionHeight { get; set; }
+
+	/// <summary>
+	/// Pieces with the same group drop the shared border when placed against each other.
+	/// </summary>
+	[Export] public string LinkGroup { get; set; } = string.Empty;
+
+	/// <summary>
 	/// Residents may walk to <see cref="EntranceLocalOffset"/> and wait inside.
 	/// Paths, plants, and decorations stay false.
 	/// </summary>

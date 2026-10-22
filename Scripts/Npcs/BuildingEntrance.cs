@@ -39,7 +39,7 @@ public static class BuildingEntrance
 		var half = StructureCollisionBuilder.GetCollisionHalfExtents(
 			building.Definition,
 			building.RotationSteps,
-			walk.Grid.CellSize);
+			walk.Layout.PlacementCellSize);
 		var insideX = Mathf.Abs(local.X) <= half.X + ResidentClearance;
 		var insideZ = Mathf.Abs(local.Z) <= half.Y + ResidentClearance;
 		if (insideX && insideZ)
@@ -47,10 +47,9 @@ public static class BuildingEntrance
 			return false;
 		}
 
-		var world = building.Visual.ToGlobal(local);
-		world.Y = 0.0f;
+		var world = walk.StandPoint(building.Visual.ToGlobal(local));
 		var cell = walk.Grid.WorldToCell(world);
-		if (!walk.IsWalkable(cell) || Occupies(building, cell) || !IsCardinallyAdjacent(building, cell))
+		if (!walk.IsWalkable(cell) || Occupies(building, cell, walk.Layout) || !IsCardinallyAdjacent(building, cell, walk.Layout))
 		{
 			return false;
 		}
@@ -64,11 +63,11 @@ public static class BuildingEntrance
 		return true;
 	}
 
-	private static bool Occupies(PlacedBuilding building, Vector2I cell)
+	private static bool Occupies(PlacedBuilding building, Vector2I visualCell, TownGridLayout layout)
 	{
 		foreach (var occupied in building.OccupiedCells())
 		{
-			if (occupied == cell)
+			if (layout.PlacementToVisual(occupied) == visualCell)
 			{
 				return true;
 			}
@@ -77,12 +76,13 @@ public static class BuildingEntrance
 		return false;
 	}
 
-	private static bool IsCardinallyAdjacent(PlacedBuilding building, Vector2I cell)
+	private static bool IsCardinallyAdjacent(PlacedBuilding building, Vector2I visualCell, TownGridLayout layout)
 	{
 		foreach (var occupied in building.OccupiedCells())
 		{
-			var dx = Mathf.Abs(cell.X - occupied.X);
-			var dy = Mathf.Abs(cell.Y - occupied.Y);
+			var visual = layout.PlacementToVisual(occupied);
+			var dx = Mathf.Abs(visualCell.X - visual.X);
+			var dy = Mathf.Abs(visualCell.Y - visual.Y);
 			if (dx + dy == 1)
 			{
 				return true;

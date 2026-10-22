@@ -8,4 +8,6 @@ public enum PlacementBlockReason
 	TooFar,
 	OverlapsPlayer,
 	OverlapsResident,
+	UnevenGround,
+	OutOfPlay,
 }

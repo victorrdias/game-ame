@@ -23,17 +23,18 @@ public partial class PathTileVisual : Node3D
 			_ => new Color("9a744c"),
 		};
 
-		ProceduralMeshBuilder.AddBox(root, new Vector3(0, 0.025f, 0), new Vector3(1.92f, 0.05f, 1.92f), color, roughness: 0.98f);
+		var tile = (2.0f / TownGridLayout.Subdivisions) * 0.94f;
+		ProceduralMeshBuilder.AddBox(root, new Vector3(0, 0.025f, 0), new Vector3(tile, 0.05f, tile), color, roughness: 0.98f);
 
 		if (Style == PathTileStyle.Brick)
 		{
-			ProceduralMeshBuilder.AddBox(root, new Vector3(0, 0.055f, 0.35f), new Vector3(1.7f, 0.015f, 0.08f), VillagePalette.RoofShadow);
-			ProceduralMeshBuilder.AddBox(root, new Vector3(0, 0.055f, -0.35f), new Vector3(1.7f, 0.015f, 0.08f), VillagePalette.RoofShadow);
+			ProceduralMeshBuilder.AddBox(root, new Vector3(0, 0.055f, tile * 0.18f), new Vector3(tile * 0.88f, 0.015f, 0.04f), VillagePalette.RoofShadow);
+			ProceduralMeshBuilder.AddBox(root, new Vector3(0, 0.055f, -tile * 0.18f), new Vector3(tile * 0.88f, 0.015f, 0.04f), VillagePalette.RoofShadow);
 		}
 		else if (Style == PathTileStyle.Stone)
 		{
-			ProceduralMeshBuilder.AddBox(root, new Vector3(0.35f, 0.055f, 0), new Vector3(0.12f, 0.015f, 1.5f), new Color("8f887f"));
-			ProceduralMeshBuilder.AddBox(root, new Vector3(-0.35f, 0.055f, 0.2f), new Vector3(0.12f, 0.015f, 1.1f), new Color("8f887f"));
+			ProceduralMeshBuilder.AddBox(root, new Vector3(tile * 0.18f, 0.055f, 0), new Vector3(0.05f, 0.015f, tile * 0.78f), new Color("8f887f"));
+			ProceduralMeshBuilder.AddBox(root, new Vector3(-tile * 0.18f, 0.055f, tile * 0.1f), new Vector3(0.05f, 0.015f, tile * 0.55f), new Color("8f887f"));
 		}
 	}
 

@@ -10,14 +10,17 @@ public partial class PlayerController : CharacterBody3D
 
 	private Node3D _visualRoot = null!;
 	private CameraController _cameraController = null!;
-	private float _visualYawDegrees;
+	private float _visualYaw;
 
 	public override void _Ready()
 	{
 		_cameraController = GetNode<CameraController>(CameraControllerPath);
 		_visualRoot = GetNode<Node3D>("VisualRoot");
+		_visualRoot.PhysicsInterpolationMode = PhysicsInterpolationModeEnum.Off;
 		CollisionLayer = CollisionLayers.Player;
 		CollisionMask = CollisionLayers.PlayerMask;
+		FloorSnapLength = 0.45f;
+		FloorMaxAngle = Mathf.DegToRad(50.0f);
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -51,17 +54,16 @@ public partial class PlayerController : CharacterBody3D
 			return;
 		}
 
-		var directionFlat = new Vector3(Velocity.X, 0.0f, Velocity.Z);
+		var directionFlat = new Vector3(horizontal.X, 0.0f, horizontal.Z);
 		if (directionFlat.LengthSquared() <= 0.0001f)
 		{
 			return;
 		}
 
 		directionFlat = directionFlat.Normalized();
-
-		var targetYaw = Mathf.RadToDeg(Mathf.Atan2(directionFlat.X, directionFlat.Z));
-		_visualYawDegrees = Mathf.LerpAngle(_visualYawDegrees, targetYaw, SmoothFactor(RotationSmoothness, dt));
-		_visualRoot.RotationDegrees = new Vector3(0, _visualYawDegrees, 0);
+		var targetYaw = Mathf.Atan2(directionFlat.X, directionFlat.Z);
+		_visualYaw = Mathf.LerpAngle(_visualYaw, targetYaw, SmoothFactor(RotationSmoothness, dt));
+		_visualRoot.Basis = new Basis(Vector3.Up, _visualYaw);
 	}
 
 	public Aabb GetOccupancyBounds()

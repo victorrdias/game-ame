@@ -43,7 +43,8 @@ public partial class NpcController : CharacterBody3D
 		_collisionShape = GetNode<CollisionShape3D>("CollisionShape3D");
 		_visualRoot = GetNode<Node3D>("VisualRoot");
 		MotionMode = MotionModeEnum.Grounded;
-		FloorSnapLength = 0.25f;
+		FloorSnapLength = 0.45f;
+		FloorMaxAngle = Mathf.DegToRad(50.0f);
 		CollisionLayer = CollisionLayers.Npc;
 		CollisionMask = CollisionLayers.NpcMask;
 		AddToGroup(GroupName);
@@ -122,8 +123,7 @@ public partial class NpcController : CharacterBody3D
 			if (!_population.TryFindStandPoint(origin, this, out var spot))
 			{
 				GD.PushWarning($"{Resident.DisplayName} não achou vaga ao sair de um edifício demolido.");
-				spot = origin;
-				spot.Y = 0.0f;
+				spot = _population.Walkability.StandPoint(origin);
 			}
 
 			AppearAt(spot);
@@ -232,7 +232,7 @@ public partial class NpcController : CharacterBody3D
 				continue;
 			}
 
-			var world = grid.CellToWorldCenter(cell);
+			var world = _population.Walkability.StandPoint(grid.CellToWorldCenter(cell));
 			if (TryCommitRoute(cell, world, false, NpcRoutineState.Wandering, null))
 			{
 				return true;
@@ -312,8 +312,7 @@ public partial class NpcController : CharacterBody3D
 		{
 			if (!_population.TryFindStandPoint(GlobalPosition, this, out var emergency))
 			{
-				emergency = GlobalPosition;
-				emergency.Y = 0.0f;
+				emergency = _population.Walkability.StandPoint(GlobalPosition);
 			}
 
 			AppearAt(emergency);
@@ -345,7 +344,7 @@ public partial class NpcController : CharacterBody3D
 
 	private void AppearAt(Vector3 world)
 	{
-		world.Y = 0.0f;
+		world = _population.Walkability.StandPoint(world);
 		GlobalPosition = world;
 		SetPresent(true);
 		Resident.CurrentBuildingId = null;
@@ -386,7 +385,7 @@ public partial class NpcController : CharacterBody3D
 				approach.BuildingId);
 		}
 
-		var world = _population.Walkability.Grid.CellToWorldCenter(_goalCell);
+		var world = _population.Walkability.StandPoint(_population.Walkability.Grid.CellToWorldCenter(_goalCell));
 		return TryCommitRoute(_goalCell, world, false, NpcRoutineState.Wandering, null);
 	}
 
@@ -402,7 +401,7 @@ public partial class NpcController : CharacterBody3D
 			return false;
 		}
 
-		if (!NpcGridPathfinder.TryFindPath(start, goalCell, _population.Walkability.IsWalkable, _cellPath))
+		if (!NpcGridPathfinder.TryFindPath(start, goalCell, _population.Walkability.IsWalkable, _cellPath, _population.Walkability.CanTraverse))
 		{
 			return false;
 		}
@@ -411,15 +410,13 @@ public partial class NpcController : CharacterBody3D
 		var grid = _population.Walkability.Grid;
 		foreach (var cell in _cellPath)
 		{
-			var point = grid.CellToWorldCenter(cell);
-			point.Y = 0.0f;
+			var point = _population.Walkability.StandPoint(grid.CellToWorldCenter(cell));
 			_pending.Add(point);
 		}
 
 		if (replaceLastWithExact && _pending.Count > 0)
 		{
-			exactGoal.Y = 0.0f;
-			_pending[^1] = exactGoal;
+			_pending[^1] = _population.Walkability.StandPoint(exactGoal);
 		}
 
 		if (_pending.Count > 1 && HorizontalReach.DistanceXZ(GlobalPosition, _pending[0]) <= _config.ArrivalRadius)

@@ -23,7 +23,7 @@ public static class StructureCollisionBuilder
 		var halfExtents = GetCollisionHalfExtents(definition, rotationSteps, cellSize);
 		var width = halfExtents.X * 2.0f;
 		var depth = halfExtents.Y * 2.0f;
-		var height = GetCollisionHeight(definition);
+		var height = GetCollisionHeight(definition, rotationSteps, cellSize);
 
 		var body = new StaticBody3D
 		{
@@ -62,13 +62,30 @@ public static class StructureCollisionBuilder
 			rotatedSize.Y * cellSize * 0.92f * 0.5f);
 	}
 
-	private static float GetCollisionHeight(BuildingDefinition definition)
+	private static float GetCollisionHeight(BuildingDefinition definition, int rotationSteps, float cellSize)
 	{
+		if (definition.CollisionHeight > 0.0f)
+		{
+			return definition.CollisionHeight;
+		}
+
 		if (definition.Layer == OccupancyLayer.Path)
 		{
 			return 0.2f;
 		}
 
-		return definition.SizeInCells.X >= 2 ? 3.2f : 2.4f;
+		var rotated = FootprintHelper.GetRotatedSize(definition.SizeInCells, rotationSteps);
+		var span = Mathf.Max(rotated.X, rotated.Y) * cellSize;
+		if (span >= 3.2f)
+		{
+			return 3.2f;
+		}
+
+		if (span >= 1.2f)
+		{
+			return 2.0f;
+		}
+
+		return 1.15f;
 	}
 }

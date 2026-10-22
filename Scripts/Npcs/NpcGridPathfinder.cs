@@ -6,7 +6,7 @@ namespace Vilanova;
 
 /// <summary>
 /// A* on the town occupancy grid.
-/// NavigationAgent3D / NavMesh was skipped: the town is already a 2m cell grid, construction
+/// NavigationAgent3D / NavMesh was skipped: NPCs path on the 2m visual grid, construction
 /// mutates that grid immediately, and a baked navmesh would need a rebake per place or demolish.
 /// Obstacle avoidance does not carve paths around new houses. Cell A* stays aligned with placement.
 /// </summary>
@@ -28,7 +28,8 @@ public static class NpcGridPathfinder
 		Vector2I start,
 		Vector2I goal,
 		Func<Vector2I, bool> isWalkable,
-		List<Vector2I> path)
+		List<Vector2I> path,
+		Func<Vector2I, Vector2I, bool> canTraverse = null)
 	{
 		path.Clear();
 		if (isWalkable == null || !isWalkable(start) || !isWalkable(goal))
@@ -67,7 +68,7 @@ public static class NpcGridPathfinder
 			foreach (var offset in Neighbors)
 			{
 				var next = new Vector2I(current.X + offset.X, current.Y + offset.Y);
-				if (closed.Contains(next) || !isWalkable(next))
+				if (closed.Contains(next) || !isWalkable(next) || !CanCross(canTraverse, current, next))
 				{
 					continue;
 				}
@@ -75,7 +76,9 @@ public static class NpcGridPathfinder
 				var diagonal = offset.X != 0 && offset.Y != 0;
 				if (diagonal &&
 				    (!isWalkable(new Vector2I(current.X + offset.X, current.Y)) ||
-				     !isWalkable(new Vector2I(current.X, current.Y + offset.Y))))
+				     !isWalkable(new Vector2I(current.X, current.Y + offset.Y)) ||
+				     !CanCross(canTraverse, current, new Vector2I(current.X + offset.X, current.Y)) ||
+				     !CanCross(canTraverse, current, new Vector2I(current.X, current.Y + offset.Y))))
 				{
 					continue;
 				}
@@ -129,6 +132,11 @@ public static class NpcGridPathfinder
 		compact.Add(path[^1]);
 		path.Clear();
 		path.AddRange(compact);
+	}
+
+	private static bool CanCross(Func<Vector2I, Vector2I, bool> canTraverse, Vector2I from, Vector2I to)
+	{
+		return canTraverse == null || canTraverse(from, to);
 	}
 
 	private static int Heuristic(Vector2I a, Vector2I b)

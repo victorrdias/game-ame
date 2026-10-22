@@ -9,8 +9,10 @@ namespace Vilanova;
 public partial class FootprintHighlightVisual : Node3D
 {
 	[Export] public float CellSize { get; set; } = 2.0f;
-	[Export] public float TerrainSize { get; set; } = 40.0f;
+	[Export] public float TerrainSize { get; set; } = TerrainHeightField.ValleySize;
 	[Export] public float SurfaceHeight { get; set; } = 0.045f;
+
+	public System.Func<Vector2I, float> HeightAt { get; set; }
 
 	private GridSystem _grid = null!;
 	private MeshInstance3D _meshInstance = null!;
@@ -60,7 +62,7 @@ public partial class FootprintHighlightVisual : Node3D
 		foreach (var cell in cells)
 		{
 			var center = _grid.CellToWorldCenter(cell);
-			var y = SurfaceHeight;
+			var y = (HeightAt?.Invoke(cell) ?? 0.0f) + SurfaceHeight;
 			var x0 = center.X - half;
 			var x1 = center.X + half;
 			var z0 = center.Z - half;

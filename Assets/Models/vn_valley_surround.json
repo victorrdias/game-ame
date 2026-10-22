@@ -1,0 +1,15 @@
+{
+  "id": "vn_valley_surround",
+  "role": "visual_only",
+  "collision": false,
+  "playable_size_m": 40,
+  "playable_half_m": 20,
+  "walkable_inner_half_m": 16,
+  "surround_half_m": 210.0,
+  "road": {
+    "side": "south",
+    "purpose": "visual continuation beyond the town",
+    "gameplay": "blocked at the existing rim collision"
+  },
+  "notes": "Do not move construction, A* or occupancy outside TerrainHeightField."
+}

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1_def"]
+[ext_resource type="PackedScene" uid="uid://vncivhosp01" path="res://Scenes/Buildings/Hospital.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+Id = "hospital"
+DisplayName = "Hospital"
+Category = 0
+Layer = 0
+SizeInCells = Vector2i(9, 9)
+CanRotate = true
+CanDemolish = true
+BlocksMovement = true
+IsVisitable = true
+EntranceLocalOffset = Vector3(-3.5, 0, 0)
+VisualScene = ExtResource("2_scene")

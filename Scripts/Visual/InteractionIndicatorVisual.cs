@@ -35,7 +35,7 @@ public partial class InteractionIndicatorVisual : Node3D
 
 	public void ShowAt(Vector3 worldPosition)
 	{
-		GlobalPosition = new Vector3(worldPosition.X, 0, worldPosition.Z);
+		GlobalPosition = worldPosition;
 		Visible = true;
 	}
 

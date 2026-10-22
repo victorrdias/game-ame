@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://ccscyduiuuak7"]
+
+[ext_resource type="PackedScene" path="res://Assets/Models/vn_town_ground.glb" id="1_glb"]
+[ext_resource type="Script" path="res://Scripts/Environment/TownGroundVisual.cs" id="2_visual"]
+
+[node name="TownGround" type="Node3D"]
+script = ExtResource("2_visual")
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="BlenderModel" parent="VisualRoot" instance=ExtResource("1_glb")]

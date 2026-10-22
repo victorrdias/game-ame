@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1_def"]
+[ext_resource type="PackedScene" path="res://Scenes/Environment/River6x4.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+Id = "river_6x4"
+DisplayName = "Ribeira"
+Category = 1
+Layer = 0
+SizeInCells = Vector2i(6, 4)
+CanRotate = true
+CanDemolish = true
+BlocksMovement = true
+CollisionHeight = 0.42
+LinkGroup = "river"
+VisualScene = ExtResource("2_scene")

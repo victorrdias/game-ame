@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Godot;
 
@@ -11,6 +12,8 @@ public static class BuildPlacementEvaluator
 		int rotationSteps,
 		GridSystem grid,
 		BuildingOccupancyGrid occupancy,
+		TerrainHeightField terrain,
+		Func<Vector2I, Vector2I> placementToVisual,
 		Vector3 playerWorldPosition,
 		float maxBuildReach,
 		Aabb playerOccupancyBounds,
@@ -24,9 +27,10 @@ public static class BuildPlacementEvaluator
 			return PlacementBlockReason.TooFar;
 		}
 
+		var footprint = FootprintHelper.EnumerateFootprint(originCell, definition.SizeInCells, rotationSteps);
 		var outOfTerrain = false;
 		var occupied = false;
-		foreach (var cell in FootprintHelper.EnumerateFootprint(originCell, definition.SizeInCells, rotationSteps))
+		foreach (var cell in footprint)
 		{
 			if (!grid.IsCellInBounds(cell))
 			{
@@ -51,7 +55,18 @@ public static class BuildPlacementEvaluator
 			return PlacementBlockReason.Occupied;
 		}
 
-		if (FootprintOverlapsBounds(originCell, definition, rotationSteps, grid, playerOccupancyBounds))
+		var ground = terrain.EvaluateFootprint(footprint, placementToVisual, out _);
+		if (ground == TerrainFootprintStatus.OutOfPlay)
+		{
+			return PlacementBlockReason.OutOfPlay;
+		}
+
+		if (ground == TerrainFootprintStatus.Uneven)
+		{
+			return PlacementBlockReason.UnevenGround;
+		}
+
+		if (FootprintOverlapsBounds(originCell, definition, rotationSteps, grid, terrain, playerOccupancyBounds))
 		{
 			return PlacementBlockReason.OverlapsPlayer;
 		}
@@ -60,7 +75,7 @@ public static class BuildPlacementEvaluator
 		{
 			foreach (var bounds in residentBounds)
 			{
-				if (FootprintOverlapsBounds(originCell, definition, rotationSteps, grid, bounds))
+				if (FootprintOverlapsBounds(originCell, definition, rotationSteps, grid, terrain, bounds))
 				{
 					return PlacementBlockReason.OverlapsResident;
 				}
@@ -84,6 +99,8 @@ public static class BuildPlacementEvaluator
 			PlacementBlockReason.TooFar => "Muito distante do personagem.",
 			PlacementBlockReason.OverlapsPlayer => "Colide com o personagem.",
 			PlacementBlockReason.OverlapsResident => "Um morador está neste local.",
+			PlacementBlockReason.UnevenGround => "O terreno precisa ser plano.",
+			PlacementBlockReason.OutOfPlay => "Fora da área da vila.",
 			_ => string.Empty,
 		};
 	}
@@ -93,6 +110,7 @@ public static class BuildPlacementEvaluator
 		BuildingDefinition definition,
 		int rotationSteps,
 		GridSystem grid,
+		TerrainHeightField terrain,
 		Aabb bounds)
 	{
 		if (bounds.Size == Vector3.Zero)
@@ -104,8 +122,9 @@ public static class BuildPlacementEvaluator
 		foreach (var cell in FootprintHelper.EnumerateFootprint(originCell, definition.SizeInCells, rotationSteps))
 		{
 			var center = grid.CellToWorldCenter(cell);
+			var groundY = terrain.SampleY(center.X, center.Z);
 			var cellBounds = new Aabb(
-				center - new Vector3(cellSize * 0.5f, 0.0f, cellSize * 0.5f),
+				new Vector3(center.X - cellSize * 0.5f, groundY, center.Z - cellSize * 0.5f),
 				new Vector3(cellSize, 2.5f, cellSize));
 			if (bounds.Intersects(cellBounds))
 			{

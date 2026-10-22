@@ -77,7 +77,7 @@ public partial class BuildingInfoPanelUI : CanvasLayer
 		_bodyLabel.Text =
 			$"{building.Definition.DisplayName}\n" +
 			$"Categoria: {BuildingCategoryLabels.ToDisplayName(building.Definition.Category)}\n" +
-			$"Dimensões: {size.X}×{size.Y} células\n" +
+			$"Dimensões: {size.X}×{size.Y} subtiles\n" +
 			$"Posição: ({worldCenter.X:0.#}, {worldCenter.Z:0.#})";
 
 		_panel.Visible = true;

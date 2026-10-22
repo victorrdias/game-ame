@@ -40,6 +40,7 @@ public partial class BuildPaletteUI : CanvasLayer
 	{
 		_isOpen = open;
 		_root.Visible = open;
+		GetNodeOrNull<TerrainGrid>("../TerrainGrid")?.SetVisibleForConstruction(open);
 	}
 
 	private void BuildUiChrome()
@@ -125,7 +126,7 @@ public partial class BuildPaletteUI : CanvasLayer
 	private void OnItemSelected(BuildingDefinition definition)
 	{
 		_detailsLabel.Text =
-			$"{definition.DisplayName}\nFootprint: {definition.SizeInCells.X}x{definition.SizeInCells.Y} células";
+			$"{definition.DisplayName}\nFootprint: {definition.SizeInCells.X}x{definition.SizeInCells.Y} subtiles";
 		_buildingManager.BeginPlacing(definition);
 	}
 }

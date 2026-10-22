@@ -114,7 +114,7 @@ public partial class NpcPopulationManager : Node
 				continue;
 			}
 
-			if (!NpcGridPathfinder.TryFindPath(start, approach.Cell, Walkability.IsWalkable, _pathScratch))
+			if (!NpcGridPathfinder.TryFindPath(start, approach.Cell, Walkability.IsWalkable, _pathScratch, Walkability.CanTraverse))
 			{
 				continue;
 			}
@@ -171,8 +171,7 @@ public partial class NpcPopulationManager : Node
 			var cell = queue.Dequeue();
 			if (Walkability.IsWalkable(cell))
 			{
-				var candidate = Walkability.Grid.CellToWorldCenter(cell);
-				candidate.Y = 0.0f;
+				var candidate = Walkability.StandPoint(Walkability.Grid.CellToWorldCenter(cell));
 				if (IsStandClear(candidate, except))
 				{
 					world = candidate;
@@ -279,7 +278,7 @@ public partial class NpcPopulationManager : Node
 			ExitRetrySeconds = ExitRetrySeconds,
 		};
 
-		Walkability = new TownWalkability(_buildingManager.Grid, _buildingManager.Occupancy);
+		Walkability = new TownWalkability(_buildingManager.Layout, _buildingManager.Occupancy, _buildingManager.Heights);
 		_buildingManager.BuildingPlaced += OnBuildingPlaced;
 		_buildingManager.BuildingRemoved += OnBuildingRemoved;
 		_started = true;
@@ -325,8 +324,7 @@ public partial class NpcPopulationManager : Node
 
 		for (var i = 0; i < cells.Count; i++)
 		{
-			var world = Walkability.Grid.CellToWorldCenter(cells[i]);
-			world.Y = 0.0f;
+			var world = Walkability.StandPoint(Walkability.Grid.CellToWorldCenter(cells[i]));
 			SpawnOne(i, world);
 		}
 	}
@@ -463,7 +461,7 @@ public partial class NpcPopulationManager : Node
 
 		var npc = _residents[0];
 		var start = Walkability.Grid.WorldToCell(npc.GlobalPosition);
-		var reached = NpcGridPathfinder.TryFindPath(start, approach.Cell, Walkability.IsWalkable, _pathScratch);
+		var reached = NpcGridPathfinder.TryFindPath(start, approach.Cell, Walkability.IsWalkable, _pathScratch, Walkability.CanTraverse);
 		if (!reached)
 		{
 			GD.PushWarning($"Sem caminho de {npc.Resident.DisplayName} até a entrada {approach.BuildingId}.");

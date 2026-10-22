@@ -6,4 +6,7 @@
     <RootNamespace>Vilanova</RootNamespace>
     <AssemblyName>vilanova</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Tests\**\*.cs" />
+  </ItemGroup>
 </Project>

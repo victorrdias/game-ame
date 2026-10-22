@@ -6,7 +6,7 @@ namespace Vilanova;
 
 public partial class BuildingManager : Node
 {
-	[Export] public float TerrainSize { get; set; } = 40.0f;
+	[Export] public float TerrainSize { get; set; } = TerrainHeightField.ValleySize;
 	[Export] public float CellSize { get; set; } = 2.0f;
 	[Export] public float BuildReachDistance { get; set; } = 8.0f;
 	[Export] public BuildingCatalog Catalog { get; set; } = null!;
@@ -18,13 +18,16 @@ public partial class BuildingManager : Node
 
 	public BuildingMode Mode { get; private set; } = BuildingMode.Idle;
 	public string PlacementFeedbackText { get; private set; } = string.Empty;
-	public GridSystem Grid => _grid;
+	public GridSystem Grid => _layout.Visual;
+	public TownGridLayout Layout => _layout;
+	public TerrainHeightField Heights => _heights;
 	public BuildingOccupancyGrid Occupancy => _occupancy;
 
 	public event Action<PlacedBuilding> BuildingPlaced;
 	public event Action<PlacedBuilding> BuildingRemoved;
 
-	private GridSystem _grid = null!;
+	private TownGridLayout _layout = null!;
+	private TerrainHeightField _heights = null!;
 	private BuildingOccupancyGrid _occupancy = new();
 	private Node3D _buildingsRoot = null!;
 	private Camera3D _camera = null!;
@@ -51,7 +54,8 @@ public partial class BuildingManager : Node
 
 	public override void _Ready()
 	{
-		_grid = new GridSystem(TerrainSize, CellSize);
+		_layout = new TownGridLayout(TerrainSize, CellSize);
+		_heights = TerrainHeightField.CreateValley(TerrainSize, CellSize);
 		_buildingsRoot = GetNode<Node3D>(BuildingsRootPath);
 		_camera = GetNode<Camera3D>(CameraPath);
 		_player = GetNode<PlayerController>(PlayerPath);
@@ -59,8 +63,13 @@ public partial class BuildingManager : Node
 
 		_footprintHighlight = new FootprintHighlightVisual
 		{
-			CellSize = CellSize,
+			CellSize = _layout.PlacementCellSize,
 			TerrainSize = TerrainSize,
+		};
+		_footprintHighlight.HeightAt = cell =>
+		{
+			var center = _layout.Placement.CellToWorldCenter(cell);
+			return _heights.SampleY(center.X, center.Z);
 		};
 		_buildingsRoot.AddChild(_footprintHighlight);
 
@@ -189,7 +198,7 @@ public partial class BuildingManager : Node
 	public Vector3 GetBuildingFootprintCenter(PlacedBuilding building)
 	{
 		var rotatedSize = FootprintHelper.GetRotatedSize(building.Definition.SizeInCells, building.RotationSteps);
-		return _grid.FootprintCenterWorld(building.OriginCell, rotatedSize);
+		return _heights.WithSurface(_layout.Placement.FootprintCenterWorld(building.OriginCell, rotatedSize));
 	}
 
 	public PlacedBuilding FindNearestPlacedBuilding(Vector3 fromWorldPosition, float maxRadius)
@@ -250,7 +259,7 @@ public partial class BuildingManager : Node
 	private string GetFootprintLabel()
 	{
 		var size = FootprintHelper.GetRotatedSize(_activeDefinition.SizeInCells, _rotationSteps);
-		return $"{size.X}x{size.Y} células";
+		return $"{size.X}x{size.Y} subtiles";
 	}
 
 	private void SetMode(BuildingMode mode)
@@ -296,12 +305,12 @@ public partial class BuildingManager : Node
 		}
 
 		_previewRoot.Visible = true;
-		_hoverCenterCell = _grid.WorldToCell(hit);
+		_hoverCenterCell = _layout.WorldToPlacement(hit);
 		var rotatedSize = FootprintHelper.GetRotatedSize(_activeDefinition.SizeInCells, _rotationSteps);
 		_hoverOriginCell = FootprintHelper.OriginFromCenterCell(_hoverCenterCell, rotatedSize);
 		RefreshPlacementState();
 
-		_previewRoot.GlobalPosition = _grid.FootprintCenterWorld(_hoverOriginCell, rotatedSize);
+		_previewRoot.GlobalPosition = GroundedFootprintCenter(_hoverOriginCell, rotatedSize);
 		_previewRoot.RotationDegrees = new Vector3(0, FootprintHelper.RotationDegrees(_rotationSteps), 0);
 
 		if (_hoverValid != _lastPreviewValid)
@@ -324,8 +333,10 @@ public partial class BuildingManager : Node
 			_activeDefinition,
 			_hoverOriginCell,
 			_rotationSteps,
-			_grid,
+			_layout.Placement,
 			_occupancy,
+			_heights,
+			_layout.PlacementToVisual,
 			_player.GlobalPosition,
 			BuildReachDistance,
 			_player.GetOccupancyBounds(),
@@ -356,7 +367,7 @@ public partial class BuildingManager : Node
 			return;
 		}
 
-		var cell = _grid.WorldToCell(hit);
+		var cell = _layout.WorldToPlacement(hit);
 		_demolishHoverTarget = _occupancy.GetAtCell(cell);
 		if (_demolishHoverTarget == null || !_demolishHoverTarget.CanDemolish)
 		{
@@ -402,13 +413,14 @@ public partial class BuildingManager : Node
 		var visual = _activeDefinition.VisualScene.Instantiate<Node3D>();
 		_buildingsRoot.AddChild(visual);
 		var rotatedSize = FootprintHelper.GetRotatedSize(_activeDefinition.SizeInCells, _rotationSteps);
-		visual.GlobalPosition = _grid.FootprintCenterWorld(_hoverOriginCell, rotatedSize);
+		visual.GlobalPosition = GroundedFootprintCenter(_hoverOriginCell, rotatedSize);
 		visual.RotationDegrees = new Vector3(0, FootprintHelper.RotationDegrees(_rotationSteps), 0);
 
 		var placed = new PlacedBuilding(visual, _activeDefinition, _hoverOriginCell, _rotationSteps);
 		visual.SetMeta("building_instance_id", placed.InstanceId);
 		_occupancy.Register(placed);
-		StructureCollisionBuilder.EnsureStructureCollision(visual, _activeDefinition, _rotationSteps, CellSize);
+		StructureCollisionBuilder.EnsureStructureCollision(visual, _activeDefinition, _rotationSteps, _layout.PlacementCellSize);
+		RefreshLinkedRivers(placed.OccupiedCells());
 		BuildingPlaced?.Invoke(placed);
 		BuildingVisualSpawnAnimation.Play(visual);
 	}
@@ -421,12 +433,41 @@ public partial class BuildingManager : Node
 		}
 
 		var building = _demolishHoverTarget;
+		var touched = new List<Vector2I>(building.OccupiedCells());
 		StructureCollisionBuilder.DisableCollisionRecursively(building.Visual);
 		_occupancy.Unregister(building);
+		RefreshLinkedRivers(touched);
 		BuildingRemoved?.Invoke(building);
 		building.Visual.QueueFree();
 		_demolishHoverTarget = null;
 		_demolishHoverValid = false;
+	}
+
+	private void RefreshLinkedRivers(IEnumerable<Vector2I> cells)
+	{
+		var seen = new HashSet<PlacedBuilding>();
+		foreach (var cell in cells)
+		{
+			TryRefreshLink(cell, seen);
+			TryRefreshLink(cell + new Vector2I(1, 0), seen);
+			TryRefreshLink(cell + new Vector2I(-1, 0), seen);
+			TryRefreshLink(cell + new Vector2I(0, 1), seen);
+			TryRefreshLink(cell + new Vector2I(0, -1), seen);
+		}
+	}
+
+	private void TryRefreshLink(Vector2I cell, HashSet<PlacedBuilding> seen)
+	{
+		var placed = _occupancy.GetAtCell(cell);
+		if (placed?.Visual == null || !seen.Add(placed))
+		{
+			return;
+		}
+
+		placed.Visual.GetNodeOrNull<RiverLink>("RiverLink")?.Apply(
+			placed,
+			_occupancy.GetAtCell,
+			_layout.Placement.WorldToCell);
 	}
 
 	private void CreatePreview(BuildingDefinition definition)
@@ -488,7 +529,7 @@ public partial class BuildingManager : Node
 			return;
 		}
 
-		var origin = _grid.OriginCellFromWorldCenter(node.GlobalPosition, definition.SizeInCells);
+		var origin = _layout.Placement.OriginCellFromWorldCenter(node.GlobalPosition, definition.SizeInCells);
 		RegisterPlacedNode(node, definition, origin, 0, "scene:" + node.GetPath());
 	}
 
@@ -502,7 +543,7 @@ public partial class BuildingManager : Node
 		var placed = new PlacedBuilding(node, definition, originCell, rotationSteps, instanceId);
 		node.SetMeta("building_instance_id", placed.InstanceId);
 		_occupancy.Register(placed);
-		StructureCollisionBuilder.EnsureStructureCollision(node, definition, rotationSteps, CellSize);
+		StructureCollisionBuilder.EnsureStructureCollision(node, definition, rotationSteps, _layout.PlacementCellSize);
 	}
 
 	private void CollectResidentBounds()
@@ -521,6 +562,21 @@ public partial class BuildingManager : Node
 				_residentBounds.Add(npc.GetOccupancyBounds());
 			}
 		}
+	}
+
+	private Vector3 GroundedFootprintCenter(Vector2I originCell, Vector2I rotatedSize)
+	{
+		var world = _layout.Placement.FootprintCenterWorld(originCell, rotatedSize);
+		if (_heights.EvaluateFootprint(
+			    FootprintHelper.EnumerateFootprint(originCell, rotatedSize, 0),
+			    _layout.PlacementToVisual,
+			    out var height) == TerrainFootprintStatus.Ok)
+		{
+			world.Y = height;
+			return world;
+		}
+
+		return _heights.WithSurface(world);
 	}
 
 	private bool TryGetGroundHit(out Vector3 hitPoint)
