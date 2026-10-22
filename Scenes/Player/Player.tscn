@@ -1,7 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Player/PlayerController.cs" id="1_player"]
 [ext_resource type="Script" path="res://Scripts/Player/PlayerVisual.cs" id="2_visual"]
+[ext_resource type="Script" path="res://Scripts/Items/InventoryComponent.cs" id="3_inv"]
+[ext_resource type="Script" path="res://Scripts/Items/PlayerPickupCollector.cs" id="4_pick"]
+[ext_resource type="Resource" path="res://Assets/Catalog/ItemCatalog.tres" id="5_items"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.28
@@ -17,3 +20,10 @@ shape = SubResource("CapsuleShape3D_player")
 
 [node name="VisualRoot" type="Node3D" parent="."]
 script = ExtResource("2_visual")
+
+[node name="Inventory" type="Node" parent="."]
+script = ExtResource("3_inv")
+Catalog = ExtResource("5_items")
+
+[node name="Pickup" type="Node" parent="."]
+script = ExtResource("4_pick")

@@ -78,64 +78,80 @@ def add_box(verts, faces, mats, center, size, material_index, yaw=0.0):
         mats.append(material_index)
 
 
-def build(coll, materials):
+def make_part(coll, materials, name, pivot, boxes):
+    """Mesh origin sits on the joint so Godot can swing the limb."""
     index = {mat.name: i for i, mat in enumerate(materials)}
     verts, faces, mats = [], [], []
-
-    def box(center, size, name, yaw=0.0):
-        add_box(verts, faces, mats, center, size, index[name], yaw)
-
-    box((-0.13, 0.03, 0.08), (0.12, 0.18, 0.16), "boot")
-    box((0.13, 0.03, 0.08), (0.12, 0.18, 0.16), "boot")
-    box((-0.13, 0.1, 0.045), (0.11, 0.07, 0.07), "boot")
-    box((0.13, 0.1, 0.045), (0.11, 0.07, 0.07), "boot")
-
-    box((-0.13, 0.0, 0.44), (0.11, 0.14, 0.46), "pants")
-    box((0.13, 0.0, 0.44), (0.11, 0.14, 0.46), "pants")
-
-    box((0.0, 0.0, 0.94), (0.38, 0.22, 0.5), "tunic")
-    box((0.0, 0.09, 0.96), (0.3, 0.08, 0.34), "vest")
-    box((0.0, 0.1, 1.08), (0.16, 0.06, 0.08), "trim")
-    box((0.0, 0.0, 0.7), (0.4, 0.24, 0.07), "belt")
-    box((0.0, 0.125, 0.7), (0.06, 0.03, 0.06), "buckle")
-
-    box((-0.25, 0.0, 1.05), (0.12, 0.13, 0.24), "tunic")
-    box((0.25, 0.0, 1.05), (0.12, 0.13, 0.24), "tunic")
-    box((-0.27, 0.04, 0.84), (0.1, 0.11, 0.22), "tunic")
-    box((0.27, 0.04, 0.84), (0.1, 0.11, 0.22), "tunic")
-    box((-0.27, 0.07, 0.7), (0.08, 0.08, 0.08), "skin")
-    box((0.27, 0.07, 0.7), (0.08, 0.08, 0.08), "skin")
-
-    box((0.0, 0.0, 1.22), (0.1, 0.1, 0.08), "skin")
-    box((0.0, 0.03, 1.4), (0.26, 0.24, 0.26), "skin")
-    box((0.0, -0.02, 1.52), (0.32, 0.3, 0.16), "hair")
-    box((0.0, -0.1, 1.38), (0.32, 0.14, 0.3), "hair")
-    box((0.0, 0.12, 1.54), (0.28, 0.1, 0.08), "hair")
-    box((-0.12, -0.02, 1.34), (0.08, 0.16, 0.22), "hair")
-    box((0.12, -0.02, 1.34), (0.08, 0.16, 0.22), "hair")
-
-    box((-0.07, 0.15, 1.42), (0.055, 0.02, 0.055), "eye")
-    box((0.07, 0.15, 1.42), (0.055, 0.02, 0.055), "eye")
-    box((-0.07, 0.15, 1.4), (0.045, 0.015, 0.02), "eye_light")
-    box((0.07, 0.15, 1.4), (0.045, 0.015, 0.02), "eye_light")
-    box((0.0, 0.15, 1.35), (0.07, 0.02, 0.025), "mouth")
-    box((-0.09, 0.14, 1.36), (0.04, 0.015, 0.03), "blush")
-    box((0.09, 0.14, 1.36), (0.04, 0.015, 0.03), "blush")
-
-    box((0.24, -0.02, 0.84), (0.09, 0.1, 0.16), "satchel")
-    box((0.24, 0.02, 0.92), (0.1, 0.08, 0.05), "vest")
-    box((0.2, 0.0, 1.02), (0.04, 0.04, 0.26), "satchel")
-
-    mesh = bpy.data.meshes.new("vn_player")
+    px, py, pz = pivot
+    for center, size, material_name in boxes:
+        cx, cy, cz = center
+        add_box(verts, faces, mats, (cx - px, cy - py, cz - pz), size, index[material_name])
+    mesh = bpy.data.meshes.new(name + "Mesh")
     mesh.from_pydata(verts, [], faces)
     for material in materials:
         mesh.materials.append(material)
     for polygon, material_index in zip(mesh.polygons, mats):
         polygon.material_index = material_index
         polygon.use_smooth = False
-    obj = bpy.data.objects.new("PlayerBody", mesh)
+    obj = bpy.data.objects.new(name, mesh)
+    obj.location = Vector(pivot)
     link(obj, coll)
     return obj
+
+
+def build(coll, materials, root):
+    parts = {
+        "Body": ((0.0, 0.0, 0.0), (
+            ((0.0, 0.0, 0.94), (0.38, 0.22, 0.5), "tunic"),
+            ((0.0, 0.09, 0.96), (0.3, 0.08, 0.34), "vest"),
+            ((0.0, 0.1, 1.08), (0.16, 0.06, 0.08), "trim"),
+            ((0.0, 0.0, 0.7), (0.4, 0.24, 0.07), "belt"),
+            ((0.0, 0.125, 0.7), (0.06, 0.03, 0.06), "buckle"),
+            ((0.0, 0.0, 1.22), (0.1, 0.1, 0.08), "skin"),
+            ((0.0, 0.03, 1.4), (0.26, 0.24, 0.26), "skin"),
+            ((0.0, -0.02, 1.52), (0.32, 0.3, 0.16), "hair"),
+            ((0.0, -0.1, 1.38), (0.32, 0.14, 0.3), "hair"),
+            ((0.0, 0.12, 1.54), (0.28, 0.1, 0.08), "hair"),
+            ((-0.12, -0.02, 1.34), (0.08, 0.16, 0.22), "hair"),
+            ((0.12, -0.02, 1.34), (0.08, 0.16, 0.22), "hair"),
+            ((-0.07, 0.15, 1.42), (0.055, 0.02, 0.055), "eye"),
+            ((0.07, 0.15, 1.42), (0.055, 0.02, 0.055), "eye"),
+            ((-0.07, 0.15, 1.4), (0.045, 0.015, 0.02), "eye_light"),
+            ((0.07, 0.15, 1.4), (0.045, 0.015, 0.02), "eye_light"),
+            ((0.0, 0.15, 1.35), (0.07, 0.02, 0.025), "mouth"),
+            ((-0.09, 0.14, 1.36), (0.04, 0.015, 0.03), "blush"),
+            ((0.09, 0.14, 1.36), (0.04, 0.015, 0.03), "blush"),
+            ((0.24, -0.02, 0.84), (0.09, 0.1, 0.16), "satchel"),
+            ((0.24, 0.02, 0.92), (0.1, 0.08, 0.05), "vest"),
+            ((0.2, 0.0, 1.02), (0.04, 0.04, 0.26), "satchel"),
+        )),
+        "LegL": ((-0.13, 0.0, 0.67), (
+            ((-0.13, 0.03, 0.08), (0.12, 0.18, 0.16), "boot"),
+            ((-0.13, 0.1, 0.045), (0.11, 0.07, 0.07), "boot"),
+            ((-0.13, 0.0, 0.44), (0.11, 0.14, 0.46), "pants"),
+        )),
+        "LegR": ((0.13, 0.0, 0.67), (
+            ((0.13, 0.03, 0.08), (0.12, 0.18, 0.16), "boot"),
+            ((0.13, 0.1, 0.045), (0.11, 0.07, 0.07), "boot"),
+            ((0.13, 0.0, 0.44), (0.11, 0.14, 0.46), "pants"),
+        )),
+        "ArmL": ((-0.25, 0.0, 1.17), (
+            ((-0.25, 0.0, 1.05), (0.12, 0.13, 0.24), "tunic"),
+            ((-0.27, 0.04, 0.84), (0.1, 0.11, 0.22), "tunic"),
+            ((-0.27, 0.07, 0.7), (0.08, 0.08, 0.08), "skin"),
+        )),
+        "ArmR": ((0.25, 0.0, 1.17), (
+            ((0.25, 0.0, 1.05), (0.12, 0.13, 0.24), "tunic"),
+            ((0.27, 0.04, 0.84), (0.1, 0.11, 0.22), "tunic"),
+            ((0.27, 0.07, 0.7), (0.08, 0.08, 0.08), "skin"),
+        )),
+    }
+    nodes = {}
+    for name, (pivot, boxes) in parts.items():
+        node = make_part(coll, materials, name, pivot, boxes)
+        node.parent = root
+        nodes[name] = node
+    return nodes
 
 
 def look_at(obj, target):
@@ -233,8 +249,18 @@ def main():
     ]
     root = bpy.data.objects.new("VNPlayer", None)
     link(root, coll)
-    build(coll, materials).parent = root
+    nodes = build(coll, materials, root)
     render(root)
+    nodes["LegL"].rotation_euler.x = math.radians(-28)
+    nodes["LegR"].rotation_euler.x = math.radians(28)
+    nodes["ArmL"].rotation_euler.x = math.radians(20)
+    nodes["ArmR"].rotation_euler.x = math.radians(-20)
+    bpy.context.view_layer.update()
+    scene.render.filepath = str(PREVIEW_DIR / "vn_player_step.png")
+    bpy.ops.render.render(write_still=True)
+    print("RENDERED", scene.render.filepath)
+    for node in nodes.values():
+        node.rotation_euler = (0.0, 0.0, 0.0)
     export_glb(root)
     bpy.ops.wm.save_as_mainfile(filepath=str(BLEND_PATH))
     import_path = BLEND_PATH.with_suffix(".blend.import")

@@ -8,6 +8,7 @@ public partial class InteractionIndicatorVisual : Node3D
 	[Export] public float Height { get; set; } = 0.08f;
 
 	private MeshInstance3D _mesh = null!;
+	private Label3D _caption = null!;
 
 	public override void _Ready()
 	{
@@ -30,7 +31,25 @@ public partial class InteractionIndicatorVisual : Node3D
 		_mesh.MaterialOverride = material;
 		_mesh.Position = new Vector3(0, Height, 0);
 		AddChild(_mesh);
+		_caption = new Label3D
+		{
+			Position = new Vector3(0, 1.35f, 0),
+			FontSize = 42,
+			PixelSize = 0.0045f,
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			Modulate = new Color("3c291c"),
+			OutlineModulate = new Color("f4e6cf"),
+			OutlineSize = 10,
+			NoDepthTest = true,
+		};
+		AddChild(_caption);
 		Visible = false;
+	}
+
+	public void ShowPrompt(Vector3 worldPosition, string text)
+	{
+		_caption.Text = text;
+		ShowAt(worldPosition);
 	}
 
 	public void ShowAt(Vector3 worldPosition)

@@ -10,4 +10,8 @@ public enum NpcRoutineState
 	GoingToBuilding,
 	InsideBuilding,
 	LeavingBuilding,
+	GoingToActivity,
+	AligningToActivity,
+	PerformingActivity,
+	LeavingActivity,
 }

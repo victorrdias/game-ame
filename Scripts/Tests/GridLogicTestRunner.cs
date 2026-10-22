@@ -15,6 +15,8 @@ public partial class GridLogicTestRunner : Node
 		CheckSharedVisualCell(failures);
 		CheckDemolishReleasesExactSubtiles(failures);
 		CheckNavigationUpdatesAfterRemove(failures);
+		CheckPathsIgnoreStructuresExceptRivers(failures);
+		CheckInteractionRegistry(failures);
 
 		if (failures.Count == 0)
 		{
@@ -124,6 +126,81 @@ public partial class GridLogicTestRunner : Node
 		    path.Count != 2)
 		{
 			failures.Add("npc path should go straight after the obstacle is removed");
+		}
+	}
+
+	private static void CheckPathsIgnoreStructuresExceptRivers(List<string> failures)
+	{
+		var layout = new TownGridLayout(40.0f, 2.0f);
+		var occupancy = new BuildingOccupancyGrid();
+		var house = Place(Definition(new Vector2I(3, 3), "house"), new Vector2I(10, 10));
+		occupancy.Register(house);
+		var path = Definition(Vector2I.One, "path");
+		path.Layer = OccupancyLayer.Path;
+		path.BlocksMovement = false;
+		path.LinkGroup = "path_cobble";
+
+		if (!occupancy.CanPlace(path, new Vector2I(11, 11), 0, layout.Placement))
+		{
+			failures.Add("path should sit on a house");
+		}
+
+		var bench = Place(Definition(Vector2I.One, "bench"), new Vector2I(30, 30));
+		occupancy.Register(bench);
+		if (!occupancy.CanPlace(path, new Vector2I(30, 30), 0, layout.Placement))
+		{
+			failures.Add("path should sit on a decoration");
+		}
+
+		var riverDefinition = Definition(new Vector2I(3, 3), "river");
+		riverDefinition.LinkGroup = "river";
+		occupancy.Register(Place(riverDefinition, new Vector2I(20, 20)));
+		if (occupancy.CanPlace(path, new Vector2I(21, 21), 0, layout.Placement))
+		{
+			failures.Add("path should not enter a river");
+		}
+
+		occupancy.Register(Place(path, new Vector2I(11, 11)));
+		if (occupancy.CanPlace(path, new Vector2I(11, 11), 0, layout.Placement))
+		{
+			failures.Add("path should not stack on another path");
+		}
+
+		if (occupancy.CanPlace(Definition(Vector2I.One, "post"), new Vector2I(11, 11), 0, layout.Placement))
+		{
+			failures.Add("a structure should still refuse a cell that already has a path");
+		}
+	}
+
+	private static void CheckInteractionRegistry(List<string> failures)
+	{
+		var registry = new NpcInteractionRegistry();
+		var point = new NpcInteractionPoint(
+			"test-seat",
+			NpcActivityType.SitBench,
+			Vector3.Zero,
+			Vector2I.Zero,
+			Vector3.Zero,
+			0.0f,
+			null,
+			"bench-1",
+			() => true);
+		registry.Register(point);
+
+		if (!registry.TryReserve(point, "npc-a"))
+		{
+			failures.Add("first NPC should reserve a free bench seat");
+		}
+
+		if (registry.TryReserve(point, "npc-b"))
+		{
+			failures.Add("second NPC must not reserve the same bench seat");
+		}
+
+		registry.Release(point, "npc-a");
+		if (!registry.TryReserve(point, "npc-b"))
+		{
+			failures.Add("bench seat should be available after release");
 		}
 	}
 

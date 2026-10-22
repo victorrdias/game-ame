@@ -104,6 +104,30 @@ class Bucket:
             face.material_index = idx
             face.smooth = False
 
+    def add_grid(self, sx, sy, z, step, mat):
+        """One welded sheet so neighboring ripples stay joined."""
+        nx = max(2, int(math.ceil(sx / step)))
+        ny = max(2, int(math.ceil(sy / step)))
+        idx = self.slot(mat)
+        rows = []
+        for iy in range(ny + 1):
+            row = []
+            y = -sy * 0.5 + sy * iy / ny
+            for ix in range(nx + 1):
+                x = -sx * 0.5 + sx * ix / nx
+                row.append(self.bm.verts.new((x, y, z)))
+            rows.append(row)
+        for iy in range(ny):
+            for ix in range(nx):
+                face = self.bm.faces.new((
+                    rows[iy][ix],
+                    rows[iy][ix + 1],
+                    rows[iy + 1][ix + 1],
+                    rows[iy + 1][ix],
+                ))
+                face.material_index = idx
+                face.smooth = False
+
     def finish(self, parent):
         if len(self.bm.verts) == 0:
             self.bm.free()
@@ -326,9 +350,10 @@ def build_river(root, coll, mats, cells_x, cells_y, kind):
     # Water fills the footprint and overlaps the shared edge by a centimeter,
     # so two rivers meet with no grass or stone seam.
     pad = 0.03
-    water = parts.bucket("Water")
-    water.add_box((0.0, 0.0, 0.08), (sx + pad, sy + pad, 0.05), mats["water_deep"])
-    water.add_box((0.0, 0.0, 0.105), (sx + pad, sy + pad, 0.03), mats["water"])
+    bed = parts.bucket("WaterBed")
+    bed.add_box((0.0, 0.0, 0.07), (sx + pad, sy + pad, 0.06), mats["water_deep"])
+    surface = parts.bucket("WaterSurface")
+    surface.add_grid(sx + pad, sy + pad, 0.118, 0.34, mats["water"])
 
     bank = 0.42 if kind == "creek" else 0.5 if kind == "reach" else 0.62
     span_x = sx * 0.98
@@ -510,8 +535,13 @@ def main():
         ("vn_river_6x4", build_river, "reach", 6, 4, 5.6, 0.25),
         ("vn_river_10x8", build_river, "wide", 10, 8, 10.5, 0.3),
     )
+    only = None
+    if "--" in sys.argv:
+        only = sys.argv[sys.argv.index("--") + 1]
     roots = []
     for index, (name, builder, kind, cells_x, cells_y, ortho, focus_z) in enumerate(specs):
+        if only and only not in name:
+            continue
         for prev in roots:
             hide_tree(prev, True)
         coll = ensure_collection(name)
@@ -532,6 +562,9 @@ def main():
 
     for root in roots:
         hide_tree(root, False)
+    if only:
+        print("SUCCESS", only)
+        return
     bpy.ops.wm.save_as_mainfile(filepath=str(BLEND_PATH))
     keep = BLEND_PATH.with_suffix(".blend.import")
     if not keep.exists():

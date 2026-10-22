@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://Assets/Models/vn_deco_stone_bench.glb" id="1_glb"]
+
+[node name="StoneBench" type="Node3D"]
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="BlenderModel" parent="VisualRoot" instance=ExtResource("1_glb")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 0, 0)

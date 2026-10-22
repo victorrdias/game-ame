@@ -2,9 +2,6 @@
 
 [ext_resource type="Script" uid="uid://b46fovr26yucf" path="res://Scripts/Camera/CameraController.cs" id="1_cam"]
 [ext_resource type="Script" uid="uid://d0firbt200atp" path="res://Scripts/Environment/TerrainGrid.cs" id="2_grid"]
-[ext_resource type="PackedScene" uid="uid://vnrefcottb01" path="res://Scenes/Buildings/ReferenceCottage.tscn" id="3_reference"]
-[ext_resource type="PackedScene" uid="uid://vntimberhs01" path="res://Scenes/Buildings/TimberCottage.tscn" id="3_timber"]
-[ext_resource type="PackedScene" uid="uid://vnstonehs001" path="res://Scenes/Buildings/StoneCottage.tscn" id="4_stone"]
 [ext_resource type="Script" uid="uid://ddcls1yem421v" path="res://Scripts/Buildings/BuildingManager.cs" id="5_bmgr"]
 [ext_resource type="Resource" path="res://Assets/Catalog/VilaNovaCatalog.tres" id="6_catalog"]
 [ext_resource type="Script" uid="uid://bll6ydvfho2u7" path="res://Scripts/UI/BuildControlsHint.cs" id="7_hint"]
@@ -15,13 +12,11 @@
 [ext_resource type="Script" uid="uid://lb8sco2uca1c" path="res://Scripts/Visual/InteractionIndicatorVisual.cs" id="12_indicator"]
 [ext_resource type="Script" uid="uid://bevtevf2p4j7g" path="res://Scripts/Npcs/NpcPopulationManager.cs" id="13_pop"]
 [ext_resource type="PackedScene" path="res://Scenes/Npcs/NpcResident.tscn" id="14_npcscene"]
-[ext_resource type="PackedScene" uid="uid://vnoaktree001" path="res://Scenes/Environment/OakTree.tscn" id="15_oak"]
-[ext_resource type="PackedScene" uid="uid://vnpoplar001" path="res://Scenes/Environment/PoplarTree.tscn" id="16_poplar"]
-[ext_resource type="PackedScene" uid="uid://vnflowerb001" path="res://Scenes/Environment/FlowerBush.tscn" id="17_flower"]
-[ext_resource type="PackedScene" uid="uid://vnberryb001" path="res://Scenes/Environment/BerryBush.tscn" id="18_berry"]
 [ext_resource type="Script" path="res://Scripts/Environment/ValleyTerrain.cs" id="19_valley"]
 [ext_resource type="PackedScene" path="res://Scenes/Environment/TownGround.tscn" id="21_ground"]
 [ext_resource type="Script" path="res://Scripts/Environment/DayNightCycle.cs" id="20_day"]
+[ext_resource type="Script" path="res://Scripts/UI/InventoryUI.cs" id="22_bag"]
+[ext_resource type="Script" path="res://Scripts/UI/HotbarUI.cs" id="23_hotbar"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.52, 0.72, 0.92, 1)
@@ -79,30 +74,6 @@ script = ExtResource("2_grid")
 
 [node name="Props" type="Node3D" parent="." unique_id=140649331]
 
-[node name="ReferenceCottage" parent="Props" unique_id=1849323582 instance=ExtResource("3_reference")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -1)
-
-[node name="TimberCottage" parent="Props" unique_id=1756361220 instance=ExtResource("3_timber")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -2)
-
-[node name="StoneCottage" parent="Props" unique_id=1406599791 instance=ExtResource("4_stone")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
-
-[node name="OakNearLane" parent="Props" unique_id=1927644028 instance=ExtResource("15_oak")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -1)
-
-[node name="PoplarEast" parent="Props" unique_id=507375750 instance=ExtResource("16_poplar")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -3)
-
-[node name="OakSouth" parent="Props" unique_id=1912486073 instance=ExtResource("15_oak")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -9)
-
-[node name="FlowerBush" parent="Props" unique_id=2062212942 instance=ExtResource("17_flower")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, 5)
-
-[node name="BerryBush" parent="Props" unique_id=423492562 instance=ExtResource("18_berry")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -5)
-
 [node name="Player" parent="." unique_id=2121892811 instance=ExtResource("9_player")]
 
 [node name="CameraController" type="Node3D" parent="." unique_id=869535254]
@@ -142,67 +113,25 @@ script = ExtResource("8_palette")
 [node name="RootPanel" type="Control" parent="BuildPaletteUI" unique_id=70080798]
 visible = false
 layout_mode = 3
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -320.0
-offset_top = -380.0
-offset_right = -16.0
-offset_bottom = -16.0
-grow_horizontal = 0
-grow_vertical = 0
-
-[node name="PanelFrame" type="PanelContainer" parent="BuildPaletteUI/RootPanel" unique_id=322060274]
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="VBox" type="VBoxContainer" parent="BuildPaletteUI/RootPanel/PanelFrame" unique_id=135753360]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="TitleLabel" type="Label" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox" unique_id=325439083]
-layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "Construção"
-
-[node name="CategoryRow" type="HBoxContainer" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox" unique_id=252396363]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="ItemScroll" type="ScrollContainer" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox" unique_id=373582836]
-custom_minimum_size = Vector2(0, 220)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="ItemGrid" type="GridContainer" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox/ItemScroll" unique_id=332124799]
-layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
-columns = 2
-
-[node name="DetailsLabel" type="Label" parent="BuildPaletteUI/RootPanel/PanelFrame/VBox" unique_id=1532258081]
-layout_mode = 2
-text = "Selecione um item do catálogo."
-autowrap_mode = 3
+mouse_filter = 2
 
 [node name="BuildControlsHint" type="CanvasLayer" parent="." unique_id=1254624309]
 layer = 3
 script = ExtResource("7_hint")
 
 [node name="MarginContainer" type="MarginContainer" parent="BuildControlsHint" unique_id=50229355]
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 96.0
-grow_horizontal = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
+anchors_preset = 0
+anchor_right = 0.42
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -12.0
+offset_bottom = 108.0
+mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="BuildControlsHint/MarginContainer" unique_id=710355450]
 layout_mode = 2
@@ -232,3 +161,11 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="HotbarUI" type="CanvasLayer" parent="."]
+layer = 1
+script = ExtResource("23_hotbar")
+
+[node name="InventoryUI" type="CanvasLayer" parent="."]
+layer = 6
+script = ExtResource("22_bag")

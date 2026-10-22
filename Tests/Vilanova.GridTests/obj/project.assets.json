@@ -904,7 +904,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\vitor\\AppData\\Local\\Temp\\cursor-sandbox-cache\\94ccc6fe1b293348ab1d63e392e39ea2\\nuget": {}
+    "C:\\Users\\vitor\\AppData\\Local\\Temp\\cursor-sandbox-cache\\676a76b0c82f8517ff6159c7404e79e9\\nuget": {}
   },
   "project": {
     "version": "1.0.0",
@@ -912,7 +912,7 @@
       "projectUniqueName": "C:\\Users\\vitor\\Documents\\vilanova\\Tests\\Vilanova.GridTests\\Vilanova.GridTests.csproj",
       "projectName": "Vilanova.GridTests",
       "projectPath": "C:\\Users\\vitor\\Documents\\vilanova\\Tests\\Vilanova.GridTests\\Vilanova.GridTests.csproj",
-      "packagesPath": "C:\\Users\\vitor\\AppData\\Local\\Temp\\cursor-sandbox-cache\\94ccc6fe1b293348ab1d63e392e39ea2\\nuget",
+      "packagesPath": "C:\\Users\\vitor\\AppData\\Local\\Temp\\cursor-sandbox-cache\\676a76b0c82f8517ff6159c7404e79e9\\nuget",
       "outputPath": "C:\\Users\\vitor\\Documents\\vilanova\\Tests\\Vilanova.GridTests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [

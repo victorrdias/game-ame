@@ -221,6 +221,43 @@ def build_bench(root, coll, mats) -> None:
     stone.finish(root)
 
 
+def build_stone_bench(root, coll, mats) -> None:
+    """Low garden seat. Long on X, open side faces +Y, backrest sits on -Y."""
+    stone = Bucket("stone_bench_stone", coll)
+    cloth = Bucket("stone_bench_cloth", coll)
+    for x in (-0.46, 0.46):
+        stone.add_box((x, 0.0, 0.13), (0.34, 0.36, 0.24), mats["stones"][2])
+        stone.add_box((x, 0.0, 0.28), (0.26, 0.28, 0.08), mats["stones_warm"][0])
+    stone.add_box((0.0, 0.02, 0.40), (1.34, 0.40, 0.10), mats["stones"][1])
+    stone.add_box((0.0, 0.03, 0.47), (1.22, 0.32, 0.045), mats["stones_warm"][1])
+    cloth.add_box((0.0, 0.05, 0.51), (1.02, 0.24, 0.035), mats["plaster"])
+    cloth.add_box((0.42, 0.05, 0.53), (0.16, 0.20, 0.02), mats["flower_r"])
+    stone.add_box((0.0, -0.16, 0.58), (1.22, 0.08, 0.14), mats["stones"][0])
+    stone.add_box((0.0, -0.17, 0.70), (1.10, 0.06, 0.08), mats["stones"][3])
+    stone.add_box((0.0, -0.17, 0.76), (1.16, 0.07, 0.035), mats["roofs"][0])
+    add_flower(cloth, 0.58, 0.14, 0.52, mats["flower_p"], mats, 0.65)
+    stone.finish(root)
+    cloth.finish(root)
+
+
+def build_plaza_bench(root, coll, mats) -> None:
+    """Iron park bench. Long on X, open side faces +Y, slatted back on -Y."""
+    wood = Bucket("plaza_bench_wood", coll)
+    iron = Bucket("plaza_bench_iron", coll)
+    for x in (-0.58, 0.58):
+        iron.add_box((x, 0.02, 0.05), (0.10, 0.30, 0.06), mats["metal"])
+        iron.add_box((x, -0.10, 0.48), (0.055, 0.055, 0.86), mats["metal"])
+        iron.add_box((x, 0.10, 0.28), (0.05, 0.05, 0.40), mats["metal"])
+        iron.add_box((x, 0.0, 0.50), (0.045, 0.24, 0.04), mats["metal"])
+        iron.add_box((x, -0.10, 0.88), (0.08, 0.08, 0.045), mats["roof_dark"])
+    for index, y in enumerate((-0.04, 0.05, 0.13)):
+        wood.add_box((0.0, y, 0.44), (1.20, 0.065, 0.04), mats["wood"] if index != 1 else mats["door"])
+    for index, z in enumerate((0.64, 0.76, 0.88)):
+        wood.add_box((0.0, -0.15, z), (1.14, 0.04, 0.05), mats["wood_dark"] if index == 2 else mats["wood"])
+    wood.finish(root)
+    iron.finish(root)
+
+
 def build_lantern(root, coll, mats) -> None:
     wood = Bucket("lantern_wood", coll)
     glass = Bucket("lantern_glass", coll)
@@ -475,7 +512,14 @@ def render_iso(root: bpy.types.Object, stem: str, ortho: float, focus_z: float) 
     bpy.data.objects.remove(cam, do_unlink=True)
 
 
+def requested_names() -> list[str]:
+    if "--" not in sys.argv:
+        return []
+    return [arg.lower() for arg in sys.argv[sys.argv.index("--") + 1 :] if arg and not arg.startswith("-")]
+
+
 def main() -> None:
+    selected = requested_names()
     clear_scene()
     setup_render_world()
     render_coll = ensure_collection("RenderOnly")
@@ -483,12 +527,18 @@ def main() -> None:
     mats = make_materials()
     specs = (
         ("vn_deco_rustic_bench", build_bench, 2.6, 0.45),
+        ("vn_deco_stone_bench", build_stone_bench, 2.6, 0.45),
+        ("vn_deco_plaza_bench", build_plaza_bench, 2.6, 0.5),
         ("vn_deco_cottage_lantern", build_lantern, 3.4, 1.0),
         ("vn_deco_cottage_planter", build_planter, 2.4, 0.35),
         ("vn_deco_stone_well", build_well, 3.2, 0.8),
         ("vn_deco_wood_cart", build_cart, 2.8, 0.5),
         ("vn_deco_village_sign", build_sign, 3.2, 0.9),
     )
+    if selected:
+        specs = tuple(spec for spec in specs if any(token in spec[0] for token in selected))
+        if not specs:
+            raise RuntimeError(f"no decoration matches {selected}")
     roots = []
     for index, (name, builder, ortho, focus_z) in enumerate(specs):
         for prev in roots:
@@ -503,6 +553,10 @@ def main() -> None:
         root.location.x = (index + 1) * 3.2
         bpy.context.view_layer.update()
         roots.append(root)
+
+    if selected:
+        print("SUCCESS")
+        return
 
     for root in roots:
         hide_tree(root, False)

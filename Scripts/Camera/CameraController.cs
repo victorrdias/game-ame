@@ -3,13 +3,14 @@ using Godot;
 namespace Vilanova;
 
 /// <summary>
-/// Isometric orthographic camera: follows target, continuous Q/E yaw, scroll zoom.
+/// Isometric orthographic camera: follows target, Q/E or right-drag yaw, scroll zoom.
 /// </summary>
 public partial class CameraController : Node3D
 {
 	[Export] public NodePath FollowTargetPath { get; set; } = new("../Player");
 	[Export] public float FollowSmoothness { get; set; } = 10.0f;
 	[Export] public float RotateSpeedDegrees { get; set; } = 95.0f;
+	[Export] public float MouseYawDegreesPerPixel { get; set; } = 0.28f;
 	[Export] public float ZoomSmoothness { get; set; } = 14.0f;
 	[Export] public float ZoomStep { get; set; } = 2.0f;
 	[Export] public float MinZoom { get; set; } = 10.0f;
@@ -40,6 +41,7 @@ public partial class CameraController : Node3D
 	private float _currentYawDegrees;
 	private float _targetZoom;
 	private float _currentZoom;
+	private bool _rightHeld;
 
 	public override void _Ready()
 	{
@@ -55,6 +57,22 @@ public partial class CameraController : Node3D
 		GlobalPosition = _targetFocus;
 		_currentYawDegrees = _pivot.RotationDegrees.Y;
 		_currentZoom = _targetZoom = _camera.Size;
+	}
+
+	public override void _Input(InputEvent @event)
+	{
+		if (@event is InputEventMouseButton button && button.ButtonIndex == MouseButton.Right)
+		{
+			_rightHeld = button.Pressed;
+			return;
+		}
+
+		if (!_rightHeld || @event is not InputEventMouseMotion motion)
+		{
+			return;
+		}
+
+		_currentYawDegrees += motion.Relative.X * MouseYawDegreesPerPixel;
 	}
 
 	public override void _UnhandledInput(InputEvent @event)

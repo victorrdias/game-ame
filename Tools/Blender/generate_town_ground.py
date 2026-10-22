@@ -1,4 +1,4 @@
-# Vila Nova — town floor GLB: pixel grass on the flat valley, dirt paths, grass tufts.
+# Vila Nova — town floor GLB: medieval cobbles, a worn slab street, grass tufts.
 # Coordinates below are Godot XZ. Blender is Z-up; export flips Y into glTF Z.
 # blender --background --python Tools/Blender/generate_town_ground.py
 
@@ -19,20 +19,27 @@ GLB_PATH = MODEL_DIR / "vn_town_ground.glb"
 CELL = 2.0
 COUNT = 120
 HALF = 120.0
-GRASS_Y = 0.025
+FLOOR_Y = 0.025
 PATH_Y = 0.04
-UV_METERS = 8.0
+FLOOR_UV = 4.0
 
-GRASS_LIGHT = (109, 181, 122, 255)
-GRASS_LIGHT_SHADE = (90, 158, 104, 255)
-GRASS_LIGHT_HI = (142, 196, 132, 255)
-GRASS_DEEP = (79, 145, 96, 255)
-GRASS_DEEP_SHADE = (58, 115, 80, 255)
-GRASS_DEEP_HI = (104, 168, 112, 255)
-FLOWER = (232, 146, 124, 255)
-PATH_LIGHT = (196, 160, 106, 255)
-PATH_DEEP = (154, 116, 76, 255)
-PATH_PEBBLE = (168, 158, 140, 255)
+STONES = (
+    (198, 180, 156, 255),
+    (176, 158, 136, 255),
+    (154, 136, 118, 255),
+    (186, 168, 148, 255),
+    (142, 126, 110, 255),
+    (168, 150, 130, 255),
+)
+MORTAR = (88, 78, 68, 255)
+JOINT_DIRT = (132, 102, 72, 255)
+MOSS = (86, 118, 74, 255)
+SLABS = (
+    (214, 190, 156, 255),
+    (188, 156, 116, 255),
+    (166, 138, 106, 255),
+    (200, 174, 142, 255),
+)
 TUFT = (79, 145, 96, 255)
 TUFT_TIP = (142, 196, 132, 255)
 
@@ -62,33 +69,61 @@ def save_image(image, path: Path) -> None:
     image.save()
 
 
-def paint_grass(image) -> None:
+def shade(color: tuple[int, int, int, int], delta: int) -> tuple[int, int, int, int]:
+    return tuple(max(0, min(255, channel + delta)) if index < 3 else channel for index, channel in enumerate(color))
+
+
+def paint_setts(image, palette, row_height: int, min_width: int, width_span: int) -> None:
     size = image.size[0]
-    block = size // 2
+    mortar = [[True for _ in range(size)] for _ in range(size)]
     for y in range(size):
         for x in range(size):
-            light = ((x // block) ^ (y // block)) == 0
-            roll = (x * 13 + y * 7) % 16
-            if light:
-                color = GRASS_LIGHT_SHADE if roll in (0, 5) else GRASS_LIGHT_HI if roll == 11 else GRASS_LIGHT
-            else:
-                color = GRASS_DEEP_SHADE if roll in (0, 5) else GRASS_DEEP_HI if roll == 11 else GRASS_DEEP
-            if roll == 3 and (x + y) % 11 == 0:
-                color = FLOWER
-            put_pixel(image, x, y, color)
+            put_pixel(image, x, y, MORTAR)
+
+    y = 0
+    row = 0
+    while y < size:
+        x = -((row * 3) % (min_width + 1))
+        stone = 0
+        while x < size:
+            width = min_width + ((row * 7 + stone * 3) % width_span)
+            height = row_height - 1
+            base = palette[(row * 3 + stone) % len(palette)]
+            for yy in range(y, min(size, y + height)):
+                for xx in range(max(0, x), min(size, x + width)):
+                    corner = (xx == x or xx == x + width - 1) and (yy == y or yy == y + height - 1)
+                    if corner and (stone + yy) % 3 == 0:
+                        continue
+                    if (xx * 3 + yy) % 11 == 0:
+                        color = shade(base, -22)
+                    elif (xx + yy * 2) % 13 == 0:
+                        color = shade(base, 16)
+                    else:
+                        color = base
+                    put_pixel(image, xx, yy, color)
+                    mortar[yy][xx] = False
+            x += width + 1
+            stone += 1
+        y += row_height
+        row += 1
+
+    for y in range(size):
+        for x in range(size):
+            if not mortar[y][x]:
+                continue
+            roll = (x * 5 + y * 9) % 23
+            if roll == 0:
+                put_pixel(image, x, y, JOINT_DIRT)
+            elif roll == 11:
+                put_pixel(image, x, y, MOSS)
+
+
+def paint_floor(image) -> None:
+    paint_setts(image, STONES, 5, 3, 3)
 
 
 def paint_path(image) -> None:
-    size = image.size[0]
-    block = size // 2
-    for y in range(size):
-        for x in range(size):
-            light = ((x // block) ^ (y // block)) == 0
-            roll = (x * 5 + y * 3) % 8
-            color = PATH_LIGHT if light else PATH_DEEP
-            if roll == 1:
-                color = PATH_PEBBLE
-            put_pixel(image, x, y, color)
+    paint_setts(image, SLABS, 8, 6, 3)
 
 
 def paint_tuft(image) -> None:
@@ -197,7 +232,7 @@ def blender_of(godot_x: float, godot_y: float, godot_z: float) -> tuple[float, f
     return (godot_x, -godot_z, godot_y)
 
 
-def add_ground(name: str, rects, height: float, material) -> bpy.types.Object:
+def add_ground(name: str, rects, height: float, material, uv_meters: float) -> bpy.types.Object:
     mesh = bpy.data.meshes.new(name)
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.scene.collection.objects.link(obj)
@@ -205,10 +240,10 @@ def add_ground(name: str, rects, height: float, material) -> bpy.types.Object:
     uv_layer = bm.loops.layers.uv.new("UVMap")
     for x0, x1, z0, z1 in rects:
         corners = (
-            (x0, z0, (x0 + HALF) / UV_METERS, (z0 + HALF) / UV_METERS),
-            (x0, z1, (x0 + HALF) / UV_METERS, (z1 + HALF) / UV_METERS),
-            (x1, z1, (x1 + HALF) / UV_METERS, (z1 + HALF) / UV_METERS),
-            (x1, z0, (x1 + HALF) / UV_METERS, (z0 + HALF) / UV_METERS),
+            (x0, z0, (x0 + HALF) / uv_meters, (z0 + HALF) / uv_meters),
+            (x0, z1, (x0 + HALF) / uv_meters, (z1 + HALF) / uv_meters),
+            (x1, z1, (x1 + HALF) / uv_meters, (z1 + HALF) / uv_meters),
+            (x1, z0, (x1 + HALF) / uv_meters, (z0 + HALF) / uv_meters),
         )
         verts = [bm.verts.new(blender_of(x, height, z)) for x, z, _, _ in corners]
         face = bm.faces.new(verts)
@@ -333,24 +368,24 @@ def export_glb(root, path: Path) -> None:
 
 def main() -> None:
     clear_scene()
-    grass_image = new_image("vn_town_grass", 32)
-    path_image = new_image("vn_town_path", 16)
+    floor_image = new_image("vn_town_floor", 64)
+    path_image = new_image("vn_town_path", 32)
     tuft_image = new_image("vn_town_tuft", 8)
-    paint_grass(grass_image)
+    paint_floor(floor_image)
     paint_path(path_image)
     paint_tuft(tuft_image)
-    save_image(grass_image, TEXTURE_DIR / "vn_town_grass.png")
+    save_image(floor_image, TEXTURE_DIR / "vn_town_floor.png")
     save_image(path_image, TEXTURE_DIR / "vn_town_path.png")
     save_image(tuft_image, TEXTURE_DIR / "vn_town_tuft.png")
 
-    grass_mat = make_material("TownGrass", grass_image, False)
+    floor_mat = make_material("TownFloor", floor_image, False)
     path_mat = make_material("TownPath", path_image, False)
     tuft_mat = make_material("TownTuft", tuft_image, True)
 
     rects, floor_cells = level_zero_rects()
     print(f"LEVEL0_QUADS {len(rects)}")
-    objects = [add_ground("TownGrass", rects, GRASS_Y, grass_mat)]
-    objects.append(add_ground("TownPath", [(-16.0, 12.0, -12.0, -10.0), (8.0, 10.0, -12.0, 10.0)], PATH_Y, path_mat))
+    objects = [add_ground("TownFloor", rects, FLOOR_Y, floor_mat, FLOOR_UV)]
+    objects.append(add_ground("TownPath", [(-16.0, 12.0, -12.0, -10.0), (8.0, 10.0, -12.0, 10.0)], PATH_Y, path_mat, FLOOR_UV))
     for index, (x, z, scale) in enumerate(tuft_points(floor_cells)):
         objects.append(add_tuft(f"Tuft{index}", x, z, tuft_mat, scale))
 

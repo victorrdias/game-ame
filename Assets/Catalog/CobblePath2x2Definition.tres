@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buildings/BuildingDefinition.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Scenes/Paths/CobblePath2x2.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+Id = "path_cobble_2x2"
+DisplayName = "Calçada irregular 2×2"
+Category = 3
+Layer = 1
+SizeInCells = Vector2i(2, 2)
+CanRotate = true
+CanDemolish = true
+BlocksMovement = false
+LinkGroup = "path_cobble"
+VisualScene = ExtResource("2")

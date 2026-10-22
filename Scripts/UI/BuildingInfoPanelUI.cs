@@ -34,24 +34,14 @@ public partial class BuildingInfoPanelUI : CanvasLayer
 		_panel.OffsetBottom = 248;
 		root.AddChild(_panel);
 
-		var style = new StyleBoxFlat
-		{
-			BgColor = new Color(0.1f, 0.12f, 0.09f, 0.88f),
-			ContentMarginLeft = 14,
-			ContentMarginTop = 12,
-			ContentMarginRight = 14,
-			ContentMarginBottom = 12,
-			CornerRadiusTopLeft = 8,
-			CornerRadiusTopRight = 8,
-			CornerRadiusBottomLeft = 8,
-			CornerRadiusBottomRight = 8,
-		};
-		_panel.AddThemeStyleboxOverride("panel", style);
+		_panel.AddThemeStyleboxOverride("panel", CozyUiTheme.Panel());
 
 		_bodyLabel = new Label
 		{
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
+		_bodyLabel.AddThemeColorOverride("font_color", CozyUiTheme.Ink);
+		_bodyLabel.AddThemeFontSizeOverride("font_size", CozyUiTheme.BodySize);
 		_panel.AddChild(_bodyLabel);
 	}
 

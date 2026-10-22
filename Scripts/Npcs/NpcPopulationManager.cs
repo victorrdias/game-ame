@@ -6,7 +6,7 @@ namespace Vilanova;
 
 public partial class NpcPopulationManager : Node
 {
-	[Export] public int ResidentCount { get; set; } = 5;
+	[Export] public int ResidentCount { get; set; } = 20;
 	[Export] public PackedScene ResidentScene { get; set; }
 	[Export] public NodePath BuildingManagerPath { get; set; } = new("../BuildingManager");
 	[Export] public NodePath NpcsRootPath { get; set; } = new("../Npcs");
@@ -20,8 +20,17 @@ public partial class NpcPopulationManager : Node
 	[Export] public float VisitChance { get; set; } = 0.55f;
 	[Export] public float RotationSmoothness { get; set; } = 12.0f;
 	[Export] public float ExitRetrySeconds { get; set; } = 6.0f;
+	[Export] public float ActivityChance { get; set; } = 0.45f;
+	[Export] public float ActivityCooldownSeconds { get; set; } = 8.0f;
+	[Export] public float SitWeight { get; set; } = 4.0f;
+	[Export] public float FishWeight { get; set; } = 0.7f;
+	[Export] public float MinSitSeconds { get; set; } = 8.0f;
+	[Export] public float MaxSitSeconds { get; set; } = 20.0f;
+	[Export] public float MinFishSeconds { get; set; } = 10.0f;
+	[Export] public float MaxFishSeconds { get; set; } = 25.0f;
 
 	public TownWalkability Walkability { get; private set; }
+	public NpcInteractionRegistry InteractionRegistry { get; private set; }
 	public IReadOnlyList<NpcController> Residents => _residents;
 
 	private readonly Random _random = new();
@@ -47,6 +56,16 @@ public partial class NpcPopulationManager : Node
 		"Igor",
 		"Júlia",
 		"Luiz",
+		"Marina",
+		"Nuno",
+		"Olga",
+		"Pedro",
+		"Rita",
+		"Samuel",
+		"Teresa",
+		"Vicente",
+		"Wanda",
+		"Yasmin",
 	};
 
 	private static readonly (Color Shirt, Color Pants, Color Skin)[] Palettes =
@@ -57,10 +76,16 @@ public partial class NpcPopulationManager : Node
 		(new Color("d08a3a"), new Color("5a3d32"), new Color("f6dcc4")),
 		(new Color("8a5f8d"), new Color("3f3a4a"), new Color("f3d0b4")),
 		(new Color("c46b7a"), new Color("4d4036"), new Color("e7be9a")),
+		(new Color("3f8f86"), new Color("3d4038"), new Color("f2d2bc")),
+		(new Color("d8c07a"), new Color("5a4632"), new Color("efc8a4")),
+		(new Color("6a7a9a"), new Color("46382e"), new Color("f6d8c2")),
+		(new Color("b85a3c"), new Color("2f3a32"), new Color("e8b898")),
 	};
 
 	private readonly List<NpcController> _residents = new();
 	private readonly List<Vector2I> _pathScratch = new();
+	private readonly List<NpcInteractionPoint> _activityScratch = new();
+	private readonly HashSet<string> _fishingDedupe = new();
 
 	public override void _Ready()
 	{
@@ -276,9 +301,19 @@ public partial class NpcPopulationManager : Node
 			VisitChance = VisitChance,
 			RotationSmoothness = RotationSmoothness,
 			ExitRetrySeconds = ExitRetrySeconds,
+			ActivityChance = ActivityChance,
+			ActivityCooldownSeconds = ActivityCooldownSeconds,
+			SitWeight = SitWeight,
+			FishWeight = FishWeight,
+			MinSitSeconds = MinSitSeconds,
+			MaxSitSeconds = MaxSitSeconds,
+			MinFishSeconds = MinFishSeconds,
+			MaxFishSeconds = MaxFishSeconds,
 		};
 
 		Walkability = new TownWalkability(_buildingManager.Layout, _buildingManager.Occupancy, _buildingManager.Heights);
+		InteractionRegistry = new NpcInteractionRegistry();
+		RegisterExistingActivityPoints();
 		_buildingManager.BuildingPlaced += OnBuildingPlaced;
 		_buildingManager.BuildingRemoved += OnBuildingRemoved;
 		_started = true;
@@ -291,6 +326,7 @@ public partial class NpcPopulationManager : Node
 
 	private void OnBuildingPlaced(PlacedBuilding building)
 	{
+		RegisterActivityPoints(building);
 		foreach (var npc in _residents)
 		{
 			npc.OnNavigationChanged();
@@ -299,10 +335,70 @@ public partial class NpcPopulationManager : Node
 
 	private void OnBuildingRemoved(PlacedBuilding building)
 	{
+		InteractionRegistry?.UnregisterBySource(building.InstanceId);
 		var origin = _buildingManager.GetBuildingFootprintCenter(building);
 		foreach (var npc in _residents)
 		{
 			npc.HandleBuildingRemoved(building.InstanceId, origin);
+			npc.HandleActivitySourceRemoved(building.InstanceId, origin);
+		}
+	}
+
+	public void CollectReachableActivities(Vector2I start, List<NpcInteractionPoint> results, Random rng)
+	{
+		results.Clear();
+		if (InteractionRegistry == null || Walkability == null)
+		{
+			return;
+		}
+
+		InteractionRegistry.CollectAvailable(_activityScratch);
+		foreach (var point in _activityScratch)
+		{
+			if (!NpcGridPathfinder.TryFindPath(
+				    start,
+				    point.ApproachCell,
+				    Walkability.IsWalkable,
+				    _pathScratch,
+				    Walkability.CanTraverse))
+			{
+				continue;
+			}
+
+			results.Add(point);
+		}
+
+		for (var i = results.Count - 1; i > 0; i--)
+		{
+			var swap = rng.Next(i + 1);
+			(results[i], results[swap]) = (results[swap], results[i]);
+		}
+	}
+
+	private void RegisterExistingActivityPoints()
+	{
+		foreach (var building in _buildingManager.Occupancy.AllBuildings)
+		{
+			RegisterActivityPoints(building);
+		}
+	}
+
+	private void RegisterActivityPoints(PlacedBuilding building)
+	{
+		if (building?.Definition == null || building.Visual == null)
+		{
+			return;
+		}
+
+		if (BenchInteractionBuilder.IsBench(building.Definition))
+		{
+			BenchInteractionBuilder.RegisterBenchPoints(building, Walkability, InteractionRegistry);
+			return;
+		}
+
+		if (building.Definition.LinkGroup == "river")
+		{
+			FishingInteractionBuilder.RegisterRiverPoints(building, Walkability, InteractionRegistry, _fishingDedupe);
 		}
 	}
 

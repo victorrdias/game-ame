@@ -56,10 +56,13 @@ public static class StructureCollisionBuilder
 
 	public static Vector2 GetCollisionHalfExtents(BuildingDefinition definition, int rotationSteps, float cellSize)
 	{
-		var rotatedSize = FootprintHelper.GetRotatedSize(definition.SizeInCells, rotationSteps);
+		// The box lives on the yawed node, so its local size stays the unrotated footprint.
+		// The node yaw turns it with the model. Swapping here as well puts the hitbox sideways.
+		_ = rotationSteps;
+		var size = definition.SizeInCells;
 		return new Vector2(
-			rotatedSize.X * cellSize * 0.92f * 0.5f,
-			rotatedSize.Y * cellSize * 0.92f * 0.5f);
+			size.X * cellSize * 0.92f * 0.5f,
+			size.Y * cellSize * 0.92f * 0.5f);
 	}
 
 	private static float GetCollisionHeight(BuildingDefinition definition, int rotationSteps, float cellSize)

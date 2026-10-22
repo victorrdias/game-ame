@@ -16,20 +16,19 @@ public partial class BuildControlsHint : CanvasLayer
 		_hintLabel = GetNode<Label>("MarginContainer/VBox/PanelContainer/HintLabel");
 		_statusLabel = GetNode<Label>("MarginContainer/VBox/StatusLabel");
 
+		var margin = GetNode<MarginContainer>("MarginContainer");
+		margin.MouseFilter = Control.MouseFilterEnum.Ignore;
+		GetNode<VBoxContainer>("MarginContainer/VBox").MouseFilter = Control.MouseFilterEnum.Ignore;
+
 		var panel = GetNode<PanelContainer>("MarginContainer/VBox/PanelContainer");
-		var panelStyle = new StyleBoxFlat
-		{
-			BgColor = new Color(0.12f, 0.14f, 0.11f, 0.45f),
-			ContentMarginLeft = 10,
-			ContentMarginTop = 6,
-			ContentMarginRight = 10,
-			ContentMarginBottom = 6,
-			CornerRadiusTopLeft = 6,
-			CornerRadiusTopRight = 6,
-			CornerRadiusBottomLeft = 6,
-			CornerRadiusBottomRight = 6,
-		};
-		panel.AddThemeStyleboxOverride("panel", panelStyle);
+		panel.MouseFilter = Control.MouseFilterEnum.Stop;
+		panel.AddThemeStyleboxOverride("panel", CozyUiTheme.Chip());
+		_hintLabel.AddThemeColorOverride("font_color", CozyUiTheme.Ink);
+		_hintLabel.AddThemeFontSizeOverride("font_size", CozyUiTheme.SmallSize);
+		_hintLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+		_statusLabel.AddThemeColorOverride("font_color", CozyUiTheme.Terracotta);
+		_statusLabel.AddThemeFontSizeOverride("font_size", CozyUiTheme.SmallSize);
+		_statusLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
 	}
 
 	public override void _Process(double delta)

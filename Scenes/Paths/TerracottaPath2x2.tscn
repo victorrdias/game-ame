@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://Assets/Models/vn_path_terracotta_2x2.glb" id="1_glb"]
+[ext_resource type="Script" path="res://Scripts/Environment/RiverLink.cs" id="2_link"]
+
+[node name="TerracottaPath2x2" type="Node3D"]
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="BlenderModel" parent="VisualRoot" instance=ExtResource("1_glb")]
+
+[node name="RiverLink" type="Node" parent="."]
+script = ExtResource("2_link")

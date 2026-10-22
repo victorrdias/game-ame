@@ -523,39 +523,79 @@ def build_townhouse(root, coll, mats):
 
 
 def build_gate(root, coll, mats):
+    """Town arch: stone piers, a real semicircular ring, and a cottage roof."""
     stone = Bucket("gate_stone", coll)
+    trim = Bucket("gate_trim", coll)
     wood = Bucket("gate_wood", coll)
     roof = Bucket("gate_roof", coll)
-    win = Bucket("gate_win", coll)
-    opening = 1.2
-    pier_outer = 2.7
-    hy = 0.72
-    spring, radius = 2.15, opening
-    # Piers.
+    lamps = Bucket("gate_lamps", coll)
+    flowers = Bucket("gate_flowers", coll)
+
+    opening = 1.12
+    pier_w = 0.78
+    outer = opening + pier_w
+    pier_d = 0.58
+    wall_d = 0.36
+    spring = 1.82
+    radius = opening
+
     for sign in (-1.0, 1.0):
-        x = sign * (opening + (pier_outer - opening) * 0.5)
-        w = pier_outer - opening
-        add_courses(stone, "y", 0, w * 0.92, x - w * 0.45, x + w * 0.45, 0, 3.35, mats["stones"])
-        stone.add_box((x, 0, 3.5), (w + 0.08, hy * 2.1, 0.28), mats["stones_warm"][0])
-        # Amber lantern on the street face.
-        win.add_box((x, hy + 0.08, 2.15), (0.22, 0.1, 0.32), mats["glass"])
-        wood.add_box((x, hy + 0.12, 2.35), (0.32, 0.08, 0.06), mats["wood_dark"])
-        wood.add_box((x, hy + 0.12, 1.95), (0.32, 0.08, 0.06), mats["wood"])
-    # Arch ring across the opening, in front and back.
-    for y in (hy * 0.35, -hy * 0.35):
-        for i in range(7):
-            a = math.pi * (i + 0.5) / 7
-            stone.add_box((math.cos(a) * (radius + 0.02), y, spring + math.sin(a) * radius), (0.28, hy * 0.7, 0.18), mats["stones_warm"][i % 2])
-        wood.add_box((0, y, spring + radius + 0.28), (opening * 2.3, 0.12, 0.16), mats["wood_dark"])
-    # Spandrel infill so the opening reads as an arch, not a slot.
-    fill_arch(stone, "y", 0, hy * 1.3, 0, spring, radius, mats["stones"][2], 4)
-    # The fill_arch fills corners of the bounding square; the pier courses already
-    # stop at the opening, so this closes the upper corners.
-    ridge = roof_x(roof, wood, 0, hy, -pier_outer, pier_outer, 3.72, math.radians(28), 0.08, mats)
-    wood.add_box((0, hy + 0.08, ridge + 0.4), (0.05, 0.05, 0.7), mats["wood_dark"])
-    for i in range(3):
-        wood.add_box((0.16 + i * 0.14, hy + 0.2, ridge + 0.35 - i * 0.05), (0.16, 0.02, 0.22), mats["cross"] if i % 2 == 0 else mats["brick"])
-    for part in (stone, wood, roof, win):
+        x = sign * (opening + pier_w * 0.5)
+        add_courses(
+            stone, "y", 0, pier_d * 1.85,
+            x - pier_w * 0.46, x + pier_w * 0.46,
+            0.16, spring - 0.02, mats["stones"],
+        )
+        trim.add_box((x, 0, 0.09), (pier_w + 0.1, pier_d * 2 + 0.08, 0.18), mats["stones_warm"][2])
+        trim.add_box((x, 0, spring + 0.2), (pier_w + 0.12, pier_d * 2 + 0.06, 0.52), mats["stones_warm"][1])
+
+    fill_arch(stone, "y", 0, wall_d * 1.7, 0, spring, radius + 0.06, mats["stones"][1], 12)
+    segments = 13
+    for i in range(segments):
+        a = math.pi * (i + 0.5) / segments
+        radial = radius + 0.04
+        center = (math.cos(a) * radial, spring + math.sin(a) * radial)
+        # Long axis follows the tangent so the stones meet as an arch.
+        rotation = Euler((0.0, math.pi * 0.5 - a, 0.0), "XYZ")
+        is_key = i == segments // 2
+        mat = mats["stones_warm"][0] if is_key else mats["stones_warm"][1] if i % 2 == 0 else mats["stones"][0]
+        length = 0.42 if is_key else 0.34
+        thick = 0.32 if is_key else 0.24
+        for y_sign in (-1.0, 1.0):
+            stone.add_box(
+                (center[0], y_sign * (wall_d * 0.72), center[1]),
+                (length, 0.18, thick),
+                mat,
+                rotation,
+            )
+
+    crown = spring + radius
+    trim.add_box((0, 0, crown + 0.1), (outer * 2 - 0.08, wall_d * 1.9, 0.16), mats["stones_warm"][0])
+    plate = crown + 0.28
+    wood.add_box((0, 0, plate), (outer * 2 + 0.08, pier_d * 2 + 0.02, 0.12), mats["wood_dark"])
+    ridge = roof_x(
+        roof, wood, 0, 0.74,
+        -outer - 0.04, outer + 0.04,
+        plate + 0.02, math.radians(36), 0.08, mats,
+    )
+    fill_gable_x(trim, -outer + 0.08, pier_d * 0.78, plate + 0.06, ridge - 0.02, 0.1, mats["plaster"])
+    fill_gable_x(trim, outer - 0.08, pier_d * 0.78, plate + 0.06, ridge - 0.02, 0.1, mats["plaster2"])
+
+    trim.add_box((0, 0, ridge + 0.28), (0.34, 0.08, 0.26), mats["plaster"])
+    roof.add_box((0, 0.03, ridge + 0.28), (0.16, 0.04, 0.14), mats["brick"])
+
+    for sign in (-1.0, 1.0):
+        x = sign * (opening + pier_w * 0.42)
+        face = pier_d + 0.01
+        wood.add_box((x, face, 1.62), (0.26, 0.05, 0.045), mats["wood_dark"])
+        lamps.add_box((x, face + 0.035, 1.4), (0.14, 0.05, 0.26), mats["glass"])
+        wood.add_box((x, face, 1.22), (0.2, 0.045, 0.04), mats["wood"])
+
+    add_flower(flowers, -outer + 0.12, pier_d * 0.55, 0.16, mats["flower_r"], mats, 0.75)
+    add_flower(flowers, outer - 0.12, pier_d * 0.55, 0.16, mats["flower_w"], mats, 0.7)
+    add_flower(flowers, -outer + 0.18, -pier_d * 0.4, 0.16, mats["flower_y"], mats, 0.65)
+
+    for part in (stone, trim, wood, roof, lamps, flowers):
         part.finish(root)
 
 
@@ -775,8 +815,13 @@ def main():
         ("vn_path_terracotta", build_terracotta, "path", 0.34, 0.34),
         ("vn_path_slab", build_slab, "path", 0.34, 0.34),
     )
+    only = None
+    if "--" in sys.argv:
+        only = sys.argv[sys.argv.index("--") + 1]
     roots = []
     for index, (name, builder, kind, limx, limy) in enumerate(specs):
+        if only and only not in name:
+            continue
         for prev in roots:
             hide(prev, True)
         coll = ensure_collection(name)
@@ -789,6 +834,9 @@ def main():
         root.location.x = (index + 1) * 12
         bpy.context.view_layer.update()
         roots.append(root)
+    if only:
+        print("SUCCESS", only)
+        return
     try:
         bpy.context.preferences.filepaths.save_version = 0
     except Exception:

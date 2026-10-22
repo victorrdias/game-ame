@@ -10,6 +10,7 @@ public partial class PlayerVisual : Node3D
 		if (packed == null)
 		{
 			PlayerVisualBuilder.Build(this);
+			AddChild(new NpcActivityVisual { Name = "Activity" });
 			return;
 		}
 
@@ -18,5 +19,8 @@ public partial class PlayerVisual : Node3D
 		model.RotationDegrees = new Vector3(0.0f, 180.0f, 0.0f);
 		AddChild(model);
 		StructureCollisionBuilder.DisableCollisionRecursively(model);
+		var walk = new PlayerWalkAnimation { Name = "Walk" };
+		AddChild(walk);
+		AddChild(new NpcActivityVisual { Name = "Activity" });
 	}
 }

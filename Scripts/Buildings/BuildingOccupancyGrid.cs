@@ -38,18 +38,37 @@ public sealed class BuildingOccupancyGrid
 	{
 		foreach (var cell in FootprintHelper.EnumerateFootprint(originCell, definition.SizeInCells, rotationSteps))
 		{
-			if (!grid.IsCellInBounds(cell))
-			{
-				return false;
-			}
-
-			if (_structureCells.ContainsKey(cell) || _pathCells.ContainsKey(cell))
+			if (!grid.IsCellInBounds(cell) || CellBlocks(definition, cell))
 			{
 				return false;
 			}
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Paths share a cell with houses and decorations. A river, or another path, still blocks them.
+	/// Structures keep both layers exclusive.
+	/// </summary>
+	public bool CellBlocks(BuildingDefinition definition, Vector2I cell)
+	{
+		if (definition == null)
+		{
+			return true;
+		}
+
+		if (definition.Layer == OccupancyLayer.Path)
+		{
+			if (_pathCells.ContainsKey(cell))
+			{
+				return true;
+			}
+
+			return _structureCells.TryGetValue(cell, out var structure) && IsRiver(structure);
+		}
+
+		return _structureCells.ContainsKey(cell) || _pathCells.ContainsKey(cell);
 	}
 
 	public PlacedBuilding GetAtCell(Vector2I cell)
@@ -65,6 +84,16 @@ public sealed class BuildingOccupancyGrid
 		}
 
 		return null;
+	}
+
+	public PlacedBuilding GetOnLayer(Vector2I cell, OccupancyLayer layer)
+	{
+		return GetMap(layer).TryGetValue(cell, out var placed) ? placed : null;
+	}
+
+	private static bool IsRiver(PlacedBuilding placed)
+	{
+		return placed?.Definition != null && placed.Definition.LinkGroup == "river";
 	}
 
 	private Dictionary<Vector2I, PlacedBuilding> GetMap(OccupancyLayer layer)

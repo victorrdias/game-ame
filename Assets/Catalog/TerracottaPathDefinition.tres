@@ -13,4 +13,5 @@ SizeInCells = Vector2i(1, 1)
 CanRotate = true
 CanDemolish = true
 BlocksMovement = false
+LinkGroup = "path_terracotta"
 VisualScene = ExtResource("2")

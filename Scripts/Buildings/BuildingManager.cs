@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Godot;
 
 namespace Vilanova;
@@ -46,7 +47,11 @@ public partial class BuildingManager : Node
 	private PlacementBlockReason _hoverBlockReason = PlacementBlockReason.None;
 	private PlacedBuilding _demolishHoverTarget;
 	private bool _demolishHoverValid;
+	private bool _hasStrokeCell;
+	private Vector2I _lastStrokeCell;
 	private readonly List<Aabb> _residentBounds = new();
+	private readonly HashSet<string> _releasedIds = new();
+	private ulong _layoutNoticeUntilMs;
 
 	private static readonly Color ValidFootprintColor = new(0.35f, 0.92f, 0.48f, 0.38f);
 	private static readonly Color InvalidFootprintColor = new(0.95f, 0.32f, 0.32f, 0.42f);
@@ -74,11 +79,24 @@ public partial class BuildingManager : Node
 		_buildingsRoot.AddChild(_footprintHighlight);
 
 		RegisterInitialSceneObjects();
+		SpawnStarterPlaza();
+		RefreshAllLinks();
 		SetMode(BuildingMode.Idle);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (@event.IsEcho())
+		{
+			return;
+		}
+
+		if (@event.IsActionPressed("export_layout"))
+		{
+			SavePlacedLayout();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (@event.IsActionPressed("build_cancel") && _infoPanel != null && _infoPanel.IsOpen)
 		{
 			return;
@@ -145,13 +163,18 @@ public partial class BuildingManager : Node
 		{
 			case BuildingMode.Placing when _hasActiveDefinition:
 				UpdatePlacementPreview();
+				ContinuePathStroke();
 				break;
 			case BuildingMode.Demolishing:
 				UpdateDemolishPreview();
 				break;
 			default:
 				_footprintHighlight.HideHighlight();
-				PlacementFeedbackText = string.Empty;
+				if (Time.GetTicksMsec() >= _layoutNoticeUntilMs)
+				{
+					ShowPlacementFeedback(string.Empty);
+				}
+
 				break;
 		}
 	}
@@ -247,12 +270,13 @@ public partial class BuildingManager : Node
 	{
 		return Mode switch
 		{
-			BuildingMode.Placing =>
-				$"Construindo: {_activeDefinition.DisplayName} ({GetFootprintLabel()}) | R: girar | Clique esquerdo: colocar | Direito/Esc: cancelar",
+			BuildingMode.Placing => _activeDefinition.Category == BuildingCategory.Paths
+				? $"Construindo: {_activeDefinition.DisplayName} ({GetFootprintLabel()}) | Segure o esquerdo e ande para pintar | R: girar | Direito/Esc: cancelar"
+				: $"Construindo: {_activeDefinition.DisplayName} ({GetFootprintLabel()}) | R: girar | Clique esquerdo: colocar | Direito/Esc: cancelar",
 			BuildingMode.Demolishing =>
 				"Demolir | Clique esquerdo: remover | Direito/Esc: cancelar",
 			_ =>
-				"WASD: personagem | Q/E: girar câmera | Scroll: zoom | U: menu de construção | X: demolir | F: inspecionar",
+				"WASD: personagem | Q/E ou botão direito: girar câmera | Scroll: zoom | U: menu | X: demolir | F: interagir | F8: gravar layout",
 		};
 	}
 
@@ -266,6 +290,7 @@ public partial class BuildingManager : Node
 	{
 		Mode = mode;
 		ClearPreview();
+		_hasStrokeCell = false;
 		_demolishHoverTarget = null;
 		_demolishHoverValid = false;
 		PlacementFeedbackText = string.Empty;
@@ -292,7 +317,7 @@ public partial class BuildingManager : Node
 		{
 			_previewRoot.Visible = false;
 			_footprintHighlight.HideHighlight();
-			PlacementFeedbackText = string.Empty;
+			ShowPlacementFeedback(string.Empty);
 			return;
 		}
 
@@ -300,7 +325,7 @@ public partial class BuildingManager : Node
 		{
 			_previewRoot.Visible = false;
 			_footprintHighlight.HideHighlight();
-			PlacementFeedbackText = "Aponte para o terreno.";
+			ShowPlacementFeedback("Aponte para o terreno.");
 			return;
 		}
 
@@ -326,6 +351,29 @@ public partial class BuildingManager : Node
 			_hoverValid ? ValidFootprintColor : InvalidFootprintColor);
 	}
 
+	private void ContinuePathStroke()
+	{
+		if (_activeDefinition.Category != BuildingCategory.Paths)
+		{
+			return;
+		}
+
+		if (!Input.IsMouseButtonPressed(MouseButton.Left))
+		{
+			_hasStrokeCell = false;
+			return;
+		}
+
+		if (IsPointerOverUi() || !_hoverValid || (_hasStrokeCell && _hoverOriginCell == _lastStrokeCell))
+		{
+			return;
+		}
+
+		_lastStrokeCell = _hoverOriginCell;
+		_hasStrokeCell = true;
+		TryPlaceBuilding();
+	}
+
 	private void RefreshPlacementState()
 	{
 		CollectResidentBounds();
@@ -342,9 +390,9 @@ public partial class BuildingManager : Node
 			_player.GetOccupancyBounds(),
 			_residentBounds);
 		_hoverValid = _hoverBlockReason == PlacementBlockReason.None;
-		PlacementFeedbackText = _hoverValid
+		ShowPlacementFeedback(_hoverValid
 			? "Posição válida."
-			: BuildPlacementEvaluator.DescribeReason(_hoverBlockReason);
+			: BuildPlacementEvaluator.DescribeReason(_hoverBlockReason));
 	}
 
 	private void UpdateDemolishPreview()
@@ -352,7 +400,7 @@ public partial class BuildingManager : Node
 		if (IsPointerOverUi())
 		{
 			_footprintHighlight.HideHighlight();
-			PlacementFeedbackText = string.Empty;
+			ShowPlacementFeedback(string.Empty);
 			_demolishHoverTarget = null;
 			_demolishHoverValid = false;
 			return;
@@ -361,7 +409,7 @@ public partial class BuildingManager : Node
 		if (!TryGetGroundHit(out var hit))
 		{
 			_footprintHighlight.HideHighlight();
-			PlacementFeedbackText = "Aponte para uma construção.";
+			ShowPlacementFeedback("Aponte para uma construção.");
 			_demolishHoverTarget = null;
 			_demolishHoverValid = false;
 			return;
@@ -372,9 +420,9 @@ public partial class BuildingManager : Node
 		if (_demolishHoverTarget == null || !_demolishHoverTarget.CanDemolish)
 		{
 			_footprintHighlight.HideHighlight();
-			PlacementFeedbackText = _demolishHoverTarget == null
+			ShowPlacementFeedback(_demolishHoverTarget == null
 				? "Nada para demolir aqui."
-				: "Este item não pode ser demolido.";
+				: "Este item não pode ser demolido.");
 			_demolishHoverValid = false;
 			return;
 		}
@@ -385,9 +433,9 @@ public partial class BuildingManager : Node
 			center,
 			BuildReachDistance);
 
-		PlacementFeedbackText = _demolishHoverValid
+		ShowPlacementFeedback(_demolishHoverValid
 			? $"Demolir: {_demolishHoverTarget.Definition.DisplayName}"
-			: BuildPlacementEvaluator.DescribeReason(PlacementBlockReason.TooFar);
+			: BuildPlacementEvaluator.DescribeReason(PlacementBlockReason.TooFar));
 
 		var color = _demolishHoverValid ? DemolishFootprintColor : InvalidFootprintColor;
 		_footprintHighlight.ShowRotatedFootprint(
@@ -395,6 +443,56 @@ public partial class BuildingManager : Node
 			_demolishHoverTarget.Definition.SizeInCells,
 			_demolishHoverTarget.RotationSteps,
 			color);
+	}
+
+	private void ShowPlacementFeedback(string text)
+	{
+		if (Time.GetTicksMsec() < _layoutNoticeUntilMs)
+		{
+			return;
+		}
+
+		PlacementFeedbackText = text;
+	}
+
+	private void SavePlacedLayout()
+	{
+		var pieces = new List<PlacedLayoutWriter.Piece>();
+		foreach (var placed in _occupancy.AllBuildings)
+		{
+			if (placed?.Definition == null)
+			{
+				continue;
+			}
+
+			pieces.Add(new PlacedLayoutWriter.Piece
+			{
+				InstanceId = placed.InstanceId,
+				DefinitionId = placed.Definition.Id,
+				CellX = placed.OriginCell.X,
+				CellZ = placed.OriginCell.Y,
+				RotationSteps = placed.RotationSteps,
+			});
+		}
+
+		var text = PlacedLayoutWriter.Format(pieces);
+		var path = ProjectSettings.GlobalizePath("res://" + PlacedLayoutWriter.RelativePath);
+		Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+		File.WriteAllText(path, text);
+		var count = 0;
+		foreach (var piece in pieces)
+		{
+			if (piece.InstanceId != null && piece.InstanceId.StartsWith("placed:", StringComparison.Ordinal))
+			{
+				count++;
+			}
+		}
+
+		PlacementFeedbackText = count == 0
+			? "Nenhuma peça nova para gravar."
+			: $"{count} peças gravadas em {PlacedLayoutWriter.RelativePath}.";
+		_layoutNoticeUntilMs = Time.GetTicksMsec() + 6000;
+		GD.Print(PlacementFeedbackText);
 	}
 
 	private void TryPlaceBuilding()
@@ -420,6 +518,7 @@ public partial class BuildingManager : Node
 		visual.SetMeta("building_instance_id", placed.InstanceId);
 		_occupancy.Register(placed);
 		StructureCollisionBuilder.EnsureStructureCollision(visual, _activeDefinition, _rotationSteps, _layout.PlacementCellSize);
+		HarvestableResource.Ensure(placed, this);
 		RefreshLinkedRivers(placed.OccupiedCells());
 		BuildingPlaced?.Invoke(placed);
 		BuildingVisualSpawnAnimation.Play(visual);
@@ -433,14 +532,31 @@ public partial class BuildingManager : Node
 		}
 
 		var building = _demolishHoverTarget;
+		_demolishHoverTarget = null;
+		_demolishHoverValid = false;
+		ReleaseFootprint(building);
+		if (building.Visual != null && GodotObject.IsInstanceValid(building.Visual))
+		{
+			building.Visual.QueueFree();
+		}
+	}
+
+	public void ReleaseFootprint(PlacedBuilding building)
+	{
+		if (building == null || string.IsNullOrEmpty(building.InstanceId) || !_releasedIds.Add(building.InstanceId))
+		{
+			return;
+		}
+
 		var touched = new List<Vector2I>(building.OccupiedCells());
-		StructureCollisionBuilder.DisableCollisionRecursively(building.Visual);
+		if (building.Visual != null && GodotObject.IsInstanceValid(building.Visual))
+		{
+			StructureCollisionBuilder.DisableCollisionRecursively(building.Visual);
+		}
+
 		_occupancy.Unregister(building);
 		RefreshLinkedRivers(touched);
 		BuildingRemoved?.Invoke(building);
-		building.Visual.QueueFree();
-		_demolishHoverTarget = null;
-		_demolishHoverValid = false;
 	}
 
 	private void RefreshLinkedRivers(IEnumerable<Vector2I> cells)
@@ -458,16 +574,18 @@ public partial class BuildingManager : Node
 
 	private void TryRefreshLink(Vector2I cell, HashSet<PlacedBuilding> seen)
 	{
-		var placed = _occupancy.GetAtCell(cell);
-		if (placed?.Visual == null || !seen.Add(placed))
+		RefreshLinkedPiece(_occupancy.GetOnLayer(cell, OccupancyLayer.Structure), seen);
+		RefreshLinkedPiece(_occupancy.GetOnLayer(cell, OccupancyLayer.Path), seen);
+	}
+
+	private void RefreshLinkedPiece(PlacedBuilding placed, HashSet<PlacedBuilding> seen)
+	{
+		if (placed == null || !seen.Add(placed))
 		{
 			return;
 		}
 
-		placed.Visual.GetNodeOrNull<RiverLink>("RiverLink")?.Apply(
-			placed,
-			_occupancy.GetAtCell,
-			_layout.Placement.WorldToCell);
+		ApplyLink(placed);
 	}
 
 	private void CreatePreview(BuildingDefinition definition)
@@ -500,6 +618,68 @@ public partial class BuildingManager : Node
 		}
 
 		_hasPreviewRoot = false;
+	}
+
+	private void SpawnStarterPlaza()
+	{
+		var props = GetNodeOrNull<Node3D>(PropsPath);
+		if (props == null)
+		{
+			return;
+		}
+
+		var index = 0;
+		foreach (var piece in StarterPlaza.Pieces())
+		{
+			var definition = FindDefinition(piece.DefinitionId);
+			if (definition?.VisualScene == null)
+			{
+				GD.PushError($"Praça inicial: modelo ausente ({piece.DefinitionId}).");
+				continue;
+			}
+
+			if (!_occupancy.CanPlace(definition, piece.OriginCell, piece.RotationSteps, _layout.Placement))
+			{
+				GD.PushError($"Praça inicial: sem espaço para {piece.DefinitionId} em {piece.OriginCell}.");
+				continue;
+			}
+
+			var visual = definition.VisualScene.Instantiate<Node3D>();
+			visual.Name = $"{piece.DefinitionId}_{piece.OriginCell.X}_{piece.OriginCell.Y}_{index}";
+			props.AddChild(visual);
+			var size = FootprintHelper.GetRotatedSize(definition.SizeInCells, piece.RotationSteps);
+			visual.GlobalPosition = GroundedFootprintCenter(piece.OriginCell, size);
+			visual.RotationDegrees = new Vector3(0.0f, piece.YawDegrees, 0.0f);
+			RegisterPlacedNode(visual, definition, piece.OriginCell, piece.RotationSteps, "plaza:" + visual.Name);
+			index++;
+		}
+	}
+
+	private void RefreshAllLinks()
+	{
+		foreach (var placed in _occupancy.AllBuildings)
+		{
+			if (placed.Visual == null || !GodotObject.IsInstanceValid(placed.Visual))
+			{
+				continue;
+			}
+
+			ApplyLink(placed);
+		}
+	}
+
+	private void ApplyLink(PlacedBuilding placed)
+	{
+		if (placed?.Visual == null || !GodotObject.IsInstanceValid(placed.Visual) || placed.Definition == null)
+		{
+			return;
+		}
+
+		var layer = placed.Definition.Layer;
+		placed.Visual.GetNodeOrNull<RiverLink>("RiverLink")?.Apply(
+			placed,
+			cell => _occupancy.GetOnLayer(cell, layer),
+			_layout.Placement.WorldToCell);
 	}
 
 	private void RegisterInitialSceneObjects()
@@ -544,6 +724,7 @@ public partial class BuildingManager : Node
 		node.SetMeta("building_instance_id", placed.InstanceId);
 		_occupancy.Register(placed);
 		StructureCollisionBuilder.EnsureStructureCollision(node, definition, rotationSteps, _layout.PlacementCellSize);
+		HarvestableResource.Ensure(placed, this);
 	}
 
 	private void CollectResidentBounds()

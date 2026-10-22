@@ -38,7 +38,7 @@ public static class BuildPlacementEvaluator
 				break;
 			}
 
-			if (occupancy.GetAtCell(cell) != null)
+			if (occupancy.CellBlocks(definition, cell))
 			{
 				occupied = true;
 				break;
@@ -66,12 +66,13 @@ public static class BuildPlacementEvaluator
 			return PlacementBlockReason.UnevenGround;
 		}
 
-		if (FootprintOverlapsBounds(originCell, definition, rotationSteps, grid, terrain, playerOccupancyBounds))
+		if (definition.Layer != OccupancyLayer.Path &&
+		    FootprintOverlapsBounds(originCell, definition, rotationSteps, grid, terrain, playerOccupancyBounds))
 		{
 			return PlacementBlockReason.OverlapsPlayer;
 		}
 
-		if (residentBounds != null)
+		if (definition.Layer != OccupancyLayer.Path && residentBounds != null)
 		{
 			foreach (var bounds in residentBounds)
 			{

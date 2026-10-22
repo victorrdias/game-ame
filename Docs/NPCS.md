@@ -8,7 +8,7 @@ Residentes autônomos do protótipo. Não há necessidades, profissões, relacio
 | --- | --- |
 | `Scripts/Npcs/NpcResident.cs` | Identidade: id, nome, casa opcional, edifício atual, estado |
 | `Scripts/Npcs/NpcController.cs` | `CharacterBody3D`, rotina e movimento |
-| `Scripts/Npcs/NpcVisual.cs` | Mesmo visual provisório do jogador, com cores próprias |
+| `Scripts/Npcs/NpcVisual.cs` | O modelo do personagem, com túnica, calça e pele próprias, e o mesmo passo |
 | `Scripts/Npcs/NpcPopulationManager.cs` | Cria, registra e reage a construção/demolição |
 | `Scripts/Npcs/NpcRoutineState.cs` | Idle, Wandering, GoingToBuilding, InsideBuilding, LeavingBuilding |
 | `Scripts/Npcs/NpcRoutineConfig.cs` | Velocidade, esperas, chance de visita, raio de chegada |
@@ -48,7 +48,7 @@ Nenhuma tecla nova. WASD, câmera, R, X e F permanecem os de antes. Moradores an
 
 Colocar uma construção sobre um morador que está no mundo falha com **Um morador está neste local.** Quem está dentro de um edifício não ocupa o chão. Caminhos e flores não viram obstáculo de navegação.
 
-A quantidade inicial é o export `ResidentCount` no `NpcPopulationManager` (padrão 5). No mesmo nó dá para ajustar velocidade, esperas, chance de visita e raio de chegada.
+A quantidade inicial é o export `ResidentCount` no `NpcPopulationManager` (padrão 20). No mesmo nó dá para ajustar velocidade, esperas, chance de visita e raio de chegada.
 
 ## Validação
 

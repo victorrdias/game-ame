@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemCatalog" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Items/ItemCatalog.cs" id="1"]
+[ext_resource type="Script" path="res://Scripts/Items/ItemDefinition.cs" id="2"]
+
+[sub_resource type="Resource" id="wood"]
+script = ExtResource("2")
+Id = "wood"
+DisplayName = "Madeira"
+Description = "Toras cortadas na vila."
+MaxStack = 99
+Category = 0
+
+[sub_resource type="Resource" id="stone"]
+script = ExtResource("2")
+Id = "stone"
+DisplayName = "Pedra"
+Description = "Pedaços de rocha."
+MaxStack = 99
+Category = 0
+
+[resource]
+script = ExtResource("1")
+Items = [SubResource("wood"), SubResource("stone")]
